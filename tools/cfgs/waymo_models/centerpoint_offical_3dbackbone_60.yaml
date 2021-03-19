@@ -3,6 +3,10 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
     USE_DOUBLE_FLIP_TEST: &double_flip False
+    SAMPLED_INTERVAL: {
+        'train': 5,
+        'test': 5
+    }
 
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
@@ -18,8 +22,8 @@ DATA_CONFIG:
           VOXEL_SIZE: [ 0.1, 0.1, 0.15 ]
           MAX_POINTS_PER_VOXEL: 5
           MAX_NUMBER_OF_VOXELS: {
-              'train': 80000,
-              'test': 90000
+              'train': 150000,
+              'test': 150000
           }
 
 
@@ -31,7 +35,7 @@ MODEL:
         NAME: MeanVFE
 
     BACKBONE_3D:
-        NAME: VoxelBackBone8x
+        NAME: VoxelResBackBone8x
 
     MAP_TO_BEV:
         NAME: HeightCompression
@@ -136,4 +140,4 @@ OPTIMIZATION:
     LR_WARMUP: False
     WARMUP_EPOCH: 1
 
-    GRAD_NORM_CLIP: 10
+    GRAD_NORM_CLIP: 35

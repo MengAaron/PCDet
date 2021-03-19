@@ -263,7 +263,7 @@ class CenterHead(nn.Module):
         self.init_bias = model_cfg.PARAMETERS.init_bias
         self.task_heads = nn.ModuleList()
 
-        self.use_dcn = model_cfg.USE_DCN
+        self.use_dcn = model_cfg.get('USE_DCN', False)
         for num_cls in self.num_classes:
             heads = copy.deepcopy(self.common_heads)
             # need to complete

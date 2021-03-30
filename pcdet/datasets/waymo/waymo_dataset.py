@@ -29,6 +29,7 @@ class WaymoDataset(DatasetTemplate):
 
         self.infos = []
         self.include_waymo_data(self.mode)
+        self.range_config = dataset_cfg.get('RANGE_CONFIG', False)
 
     def set_split(self, split):
         super().__init__(
@@ -46,18 +47,21 @@ class WaymoDataset(DatasetTemplate):
         waymo_infos = []
 
         num_skipped_infos = 0
+        # skipped_infos = []
         for k in range(len(self.sample_sequence_list)):
             sequence_name = os.path.splitext(self.sample_sequence_list[k])[0]
             info_path = self.data_path / sequence_name / ('%s.pkl' % sequence_name)
             info_path = self.check_sequence_name_with_all_version(info_path)
             if not info_path.exists():
                 num_skipped_infos += 1
+                # skipped_infos.append(sequence_name)
                 continue
             with open(info_path, 'rb') as f:
                 infos = pickle.load(f)
                 waymo_infos.extend(infos)
 
         self.infos.extend(waymo_infos[:])
+        # pdb.set_trace()
         self.logger.info('Total skipped info %s' % num_skipped_infos)
         self.logger.info('Total samples for Waymo dataset: %d' % (len(waymo_infos)))
 
@@ -176,12 +180,22 @@ class WaymoDataset(DatasetTemplate):
             yflip_dict = self.prepare_data(data_dict=yflip_dict)
             dflip_dict = self.prepare_data(data_dict=dflip_dict)
 
+
         data_dict = self.prepare_data(data_dict=input_dict)
         data_dict['metadata'] = info.get('metadata', info['frame_id'])
         data_dict.pop('num_points_in_gt', None)
 
         if not self.training and self.dataset_cfg.get('USE_DOUBLE_FLIP_TEST', False):
             return (data_dict, yflip_dict, xflip_dict, dflip_dict)
+        # whether use range image
+        if self.range_config:
+            from . import waymo_utils
+            input_dict.update({
+                'beam_inclination_range': info['beam_inclination_range'],
+                'extrinsic': info['extrinsic'],
+                'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', (64, 2560))
+            })
+            waymo_utils.convert_point_to_cloud_range_image(input_dict)
         return data_dict
 
     @staticmethod
@@ -384,12 +398,6 @@ def create_waymo_infos(dataset_cfg, class_names, data_path, save_path,
     print('---------------Data preparation Done---------------')
 
 
-def create_range_image(dataset_cfg, class_names, data_path, save_path,
-                       raw_data_tag='raw_data', processed_data_tag='waymo_processed_data',
-                       workers=multiprocessing.cpu_count()):
-    pass
-
-
 if __name__ == '__main__':
     import argparse
 
@@ -412,10 +420,4 @@ if __name__ == '__main__':
             raw_data_tag='raw_data',
             processed_data_tag=dataset_cfg.PROCESSED_DATA_TAG
         )
-    if args.func == 'create_range_image':
-        import yaml
-        from easydict import EasyDict
-
-        dataset_cfg = EasyDict(yaml.load(open(args.cfg_file)))
-        ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
 

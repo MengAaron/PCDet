@@ -11,6 +11,9 @@ from ...utils import common_utils
 import tensorflow as tf
 from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
+from ...ops.roiaware_pool3d import roiaware_pool3d_utils
+import torch
+import pdb
 
 try:
     tf.enable_eager_execution()
@@ -75,7 +78,8 @@ def convert_range_image_to_point_cloud(frame, range_images, camera_projections, 
 
     Returns:
         points: {[N, 3]} list of 3d lidar points of length 5 (number of lidars).
-        cp_points: {[N, 6]} list of camera projections of length 5 (number of lidars).
+        cp_points: {[N, 6]} list of camera projections of length 5 (number of lidars). 6 channels of cp points means
+            camera index of first projection, x axis of first, y axis of first, camera index of second, x, y of second
     """
     calibrations = sorted(frame.context.laser_calibrations, key=lambda c: c.name)
     points = []
@@ -210,6 +214,11 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
 
         pose = np.array(frame.pose.transform, dtype=np.float32).reshape(4, 4)
         info['pose'] = pose
+        # keep top lidar's beam inclination range and extrinsic
+        laser_calibrations = sorted(frame.context.laser_calibrations, key=lambda c: c.name)
+        top_calibration = laser_calibrations[0]
+        info['beam_inclination_range'] = [top_calibration.beam_inclination_min, top_calibration.beam_inclination_max]
+        info['extrinsic'] = np.array(top_calibration.extrinsic.transform).reshape(4, 4)
 
         if has_label:
             annotations = generate_labels(frame)
@@ -227,3 +236,72 @@ def process_single_sequence(sequence_file, save_path, sampled_interval, has_labe
     return sequence_infos
 
 
+def read_one_frame(sequence_file):
+    dataset = tf.data.TFRecordDataset(str(sequence_file), compression_type='')
+    data = next(iter(dataset))
+    frame = dataset_pb2.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+
+    return frame
+
+
+def compute_beam_inclinations(calibration, height):
+    """ Compute the inclination angle for each beam in a range image. """
+
+    if len(calibration.beam_inclinations) > 0:
+        return np.array(calibration.beam_inclinations)
+    else:
+        inclination_min = calibration.beam_inclination_min
+        inclination_max = calibration.beam_inclination_max
+
+        return np.linspace(inclination_min, inclination_max, height)
+
+
+def convert_point_to_cloud_range_image(data_dict):
+    """
+
+    Args:
+        data_dict:
+            points: (N, 3 + C_in) vehicle frame
+            gt_boxes: optional, (N, 7) [x, y, z, dx, dy, dz, heading]
+            beam_inclination_range: [min, max]
+            extrinsic: (4, 4) map data from sensor to vehicle
+            range_image_shape: (height, width)
+
+    Returns:
+            range_image: (H, W, 1 + C_in)
+            range_mask: (H, W, 1): 1 for gt pixels, 0 for others
+
+    """
+    points = np.expand_dims(data_dict['points'], axis=0)
+    points_vehicle_frame = tf.convert_to_tensor(points[..., :3])
+    point_features = tf.convert_to_tensor(points[..., 3:]) if points.shape[-1] > 3 else None
+    num_points = tf.convert_to_tensor([points.shape[1]], dtype=tf.int32)
+    range_image_size = data_dict['range_image_shape']
+    height, width = range_image_size
+    extrinsic = tf.convert_to_tensor(np.expand_dims(data_dict['extrinsic'], axis=0))
+
+    inclination_min, inclination_max = data_dict['beam_inclination_range']
+    # [H, ]
+    inclination = tf.convert_to_tensor(np.expand_dims(np.linspace(inclination_min, inclination_max, height), axis=0))
+
+    range_images, ri_indices, ri_ranges = range_image_utils.build_range_image_from_point_cloud(points_vehicle_frame,
+                                                                                               num_points, extrinsic,
+                                                                                               inclination,
+                                                                                               range_image_size,
+                                                                                               point_features)
+    range_images = np.squeeze(range_images.numpy(), axis=0)
+    data_dict['range_image'] = range_images
+    gt_boxes = data_dict['gt_boxes']
+    box_idxs_of_pts = roiaware_pool3d_utils.points_in_boxes_gpu(
+        torch.from_numpy(points[..., :3]).float().cuda(),
+        torch.from_numpy(gt_boxes[:, 0:7]).unsqueeze(dim=0).float().cuda()
+    ).long().squeeze(dim=0).cpu().numpy()
+    gt_points_vehicle_frame = tf.boolean_mask(points_vehicle_frame, box_idxs_of_pts > 0, axis=1)
+    range_mask, ri_mask_indices, ri_mask_ranges = range_image_utils.build_range_image_from_point_cloud(
+        gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
+    range_mask = np.squeeze(range_mask.numpy(), axis=0)
+    range_mask[range_mask > 0] = 1
+    data_dict['range_mask'] = range_mask
+
+    return data_dict

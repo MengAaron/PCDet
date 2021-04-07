@@ -14,7 +14,6 @@ from pathlib import Path
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 from ...utils import box_utils, common_utils
 from ..dataset import DatasetTemplate
-import pdb
 
 
 class WaymoDataset(DatasetTemplate):
@@ -30,6 +29,7 @@ class WaymoDataset(DatasetTemplate):
         self.infos = []
         self.include_waymo_data(self.mode)
         self.range_config = dataset_cfg.get('RANGE_CONFIG', False)
+
 
     def set_split(self, split):
         super().__init__(
@@ -190,12 +190,16 @@ class WaymoDataset(DatasetTemplate):
         # whether use range image
         if self.range_config:
             from . import waymo_utils
-            input_dict.update({
+            data_dict.update({
                 'beam_inclination_range': info['beam_inclination_range'],
                 'extrinsic': info['extrinsic'],
-                'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', (64, 2560))
+                'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [64, 2650])
             })
-            waymo_utils.convert_point_to_cloud_range_image(input_dict)
+            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict)
+            data_dict.pop('beam_inclination_range', None)
+            data_dict.pop('extrinsic', None)
+            data_dict.pop('range_image_shape', None)
+
         return data_dict
 
     @staticmethod

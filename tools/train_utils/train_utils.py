@@ -23,7 +23,6 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
             print('new iters')
 
         lr_scheduler.step(accumulated_iter)
-
         try:
             cur_lr = float(optimizer.lr)
         except:

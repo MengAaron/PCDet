@@ -11,6 +11,7 @@ import math
 
 # A magic number that provides a good resolution we need for lidar range after
 # quantization from float to uint16.
+
 _RANGE_TO_METERS = 0.00585532144
 
 
@@ -214,7 +215,7 @@ def build_range_image_from_point_cloud_np(points_frame,
                                           inclination,
                                           range_image_size,
                                           point_features=None,
-                                          dtype=np.float32):
+                                          dtype=np.float64):
     """Build virtual range image from point cloud assuming uniform azimuth.
     Args:
     points_frame: np array with shape [N, 3] in the vehicle frame.
@@ -267,16 +268,17 @@ def build_range_image_from_point_cloud_np(points_frame,
     point_ri_row_indices = np.argmin(point_inclination_diff, axis=-1)
 
     # [1,], within [-pi, pi]
-    az_correction = np.arctan2(extrinsic[1, 0], extrinsic[0, 0]).astype(np.float64)
+    az_correction = np.arctan2(extrinsic[1, 0], extrinsic[0, 0])
     # [N], within [-pi, pi]
-    point_azimuth = np.arctan2(points[..., 1].astype(np.float64), points[..., 0].astype(np.float64)).astype(
-        np.float64) + az_correction - 1e-9
+    # point_azimuth = np.arctan2(points[..., 1].astype(np.float64), points[..., 0].astype(np.float64)).astype(
+    #     np.float64) + az_correction - 1e-9
+    point_azimuth = np.arctan2(points[..., 1], points[..., 0]) + az_correction
 
     # solve the problem of np.float32 accuracy problem
     point_azimuth_gt_pi_mask = point_azimuth > np.pi
     point_azimuth_lt_minus_pi_mask = point_azimuth < -np.pi
-    point_azimuth = point_azimuth - point_azimuth_gt_pi_mask.astype(np.float64) * 2 * np.pi
-    point_azimuth = point_azimuth + point_azimuth_lt_minus_pi_mask.astype(np.float64) * 2 * np.pi
+    point_azimuth = point_azimuth - point_azimuth_gt_pi_mask.astype(dtype) * 2 * np.pi
+    point_azimuth = point_azimuth + point_azimuth_lt_minus_pi_mask.astype(dtype) * 2 * np.pi
 
     # [N].
     point_ri_col_indices = width - 1.0 + 0.5 - (point_azimuth +

@@ -11,13 +11,12 @@ from ...utils import common_utils
 import tensorflow.compat.v2 as tf
 
 tf.enable_v2_behavior()
-from waymo_open_dataset.utils import frame_utils, transform_utils
+from waymo_open_dataset.utils import frame_utils, transform_utils, range_image_utils
 from waymo_open_dataset import dataset_pb2
 from . import waymo_np
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 import torch
 import numba
-import pudb
 
 try:
     tf.enable_eager_execution()
@@ -249,19 +248,7 @@ def read_one_frame(sequence_file):
     return frame
 
 
-def compute_beam_inclinations(calibration, height):
-    """ Compute the inclination angle for each beam in a range image. """
-
-    if len(calibration.beam_inclinations) > 0:
-        return np.array(calibration.beam_inclinations)
-    else:
-        inclination_min = calibration.beam_inclination_min
-        inclination_max = calibration.beam_inclination_max
-
-        return np.linspace(inclination_min, inclination_max, height)
-
-
-def convert_point_cloud_to_range_image(data_dict):
+def convert_point_cloud_to_range_image(data_dict, training=True):
     """
 
     Args:
@@ -294,6 +281,87 @@ def convert_point_cloud_to_range_image(data_dict):
                                                                                          inclination,
                                                                                          range_image_size,
                                                                                          point_features)
+    # clipping and rescaling
+    mean, std = range_images.mean(axis=(0, 1)), range_images.std(axis=(0, 1))
+    range_images = (range_images - mean) / std
+    range_images[..., 0] = np.clip(range_images[..., 0], 0.0, 79.5) / 79.5
+    range_images[..., 1:] = np.clip(range_images[..., 1:], 0.0, 2.0) / 2.0
+    # (H, W, C) -> (C, H, W)
+    range_images = np.transpose(range_images, (2, 0, 1))
+    data_dict['range_image'] = range_images
+    data_dict['ri_indices'] = ri_indices
+
+    if training:
+        gt_boxes = data_dict['gt_boxes']
+        # CPU method, 0 or 1
+        point_indices = roiaware_pool3d_utils.points_in_boxes_cpu(
+            torch.from_numpy(points_vehicle_frame).float(),
+            torch.from_numpy(gt_boxes[:, 0:7]).float()
+        ).long().numpy()
+        flag_of_pts = point_indices.max(axis=0)
+        select = flag_of_pts > 0
+
+        # point_indices = points_in_rbbox(points[..., :3].squeeze(axis=0), gt_boxes).numpy()
+        # flag_of_pts = point_indices.max(axis=0)
+
+        gt_points_vehicle_frame = points_vehicle_frame[select, :]
+        range_mask, ri_mask_indices, ri_mask_ranges = waymo_np.build_range_image_from_point_cloud_np(
+            gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
+        range_mask[range_mask > 0] = 1
+        data_dict['range_mask'] = range_mask
+
+    return data_dict
+
+
+def test(data_dict):
+    """
+
+    Args:
+        data_dict:
+            points: (N, 3 + C_in) vehicle frame
+            gt_boxes: optional, (N, 7) [x, y, z, dx, dy, dz, heading]
+            beam_inclination_range: [min, max]
+            extrinsic: (4, 4) map data from sensor to vehicle
+            range_image_shape: (height, width)
+
+    Returns:
+            range_image: (H, W, 1 + C_in)
+            range_mask: (H, W, 1): 1 for gt pixels, 0 for others
+
+    """
+    points = data_dict['points']
+    points_vehicle_frame = points[..., :3]
+    point_features = points[..., 3:] if points.shape[-1] > 3 else None
+    num_points = points.shape[0]
+    range_image_size = data_dict['range_image_shape']
+    height, width = range_image_size
+    extrinsic = data_dict['extrinsic']
+
+    inclination_min, inclination_max = data_dict['beam_inclination_range']
+    # [H, ]
+    inclination = np.linspace(inclination_max, inclination_min, height)
+
+    range_images, ri_indices, ri_ranges = waymo_np.build_range_image_from_point_cloud_np(points_vehicle_frame,
+                                                                                         num_points, extrinsic,
+                                                                                         inclination,
+                                                                                         range_image_size,
+                                                                                         point_features)
+
+    points_vehicle_frame_tf = tf.convert_to_tensor(np.expand_dims(points_vehicle_frame, axis=0))
+    extrinsic_tf = tf.convert_to_tensor(np.expand_dims(extrinsic, axis=0))
+    inclination_tf = tf.convert_to_tensor(np.expand_dims(inclination, axis=0))
+    num_points_tf = tf.convert_to_tensor([num_points])
+    point_features_tf = tf.convert_to_tensor(np.expand_dims(point_features, axis=0))
+    range_images_tf, ri_indices_tf, ri_ranges_tf = range_image_utils.build_range_image_from_point_cloud(
+        points_vehicle_frame_tf,
+        num_points_tf, extrinsic_tf,
+        inclination_tf,
+        range_image_size,
+        point_features_tf)
+    range_images_tf = np.squeeze(range_images_tf.numpy(), axis=0)
+    ri_indices_tf = np.squeeze(ri_indices_tf.numpy(), axis=0)
+    ri_ranges_tf = np.squeeze(ri_ranges_tf.numpy(), axis=0)
+
     data_dict['range_image'] = range_images
     data_dict['ri_indices'] = ri_indices
     gt_boxes = data_dict['gt_boxes']
@@ -309,12 +377,200 @@ def convert_point_cloud_to_range_image(data_dict):
     # flag_of_pts = point_indices.max(axis=0)
 
     gt_points_vehicle_frame = points_vehicle_frame[select, :]
+    import pudb
+    pudb.set_trace()
     range_mask, ri_mask_indices, ri_mask_ranges = waymo_np.build_range_image_from_point_cloud_np(
         gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
-    range_mask[range_mask > 0] = 1
+    # range_mask[range_mask > 0] = 1
+    gt_points_vehicle_frame_tf = tf.convert_to_tensor(np.expand_dims(gt_points_vehicle_frame, axis=0))
+    range_mask_tf, ri_mask_indices_tf, ri_mask_ranges_tf = range_image_utils.build_range_image_from_point_cloud(
+        gt_points_vehicle_frame_tf, num_points_tf, extrinsic_tf, inclination_tf, range_image_size)
+    range_mask_tf = np.squeeze(range_mask_tf.numpy(), axis=0)
+    ri_mask_indices_tf = np.squeeze(ri_mask_indices_tf.numpy(), axis=0)
+    ri_mask_ranges_tf = np.squeeze(ri_mask_ranges_tf.numpy(), axis=0)
     data_dict['range_mask'] = range_mask
 
     return data_dict
+
+
+def plot_pointcloud(pointcloud, vals='height'):
+    import mayavi.mlab as mlab
+    print(pointcloud.shape)
+    print(type(pointcloud))
+    x = pointcloud[:, 0]  # x position of point
+    xmin = np.amin(x, axis=0)
+    xmax = np.amax(x, axis=0)
+    y = pointcloud[:, 1]  # y position of point
+    ymin = np.amin(y, axis=0)
+    ymax = np.amax(y, axis=0)
+    z = pointcloud[:, 2]  # z position of point
+    zmin = np.amin(z, axis=0)
+    zmax = np.amax(z, axis=0)
+    print(xmin, xmax, ymin, ymax, zmin, zmax)
+    d = np.sqrt(x ** 2 + y ** 2)  # Map Distance from sensor
+
+    if vals == "height":
+        col = z
+    else:
+        col = d
+    fig = mlab.figure(bgcolor=(0, 0, 0), size=(640, 500))
+    mlab.points3d(x, y, z,
+                  col,  # Values used for Color
+                  mode="point",
+                  # 灰度图的伪彩映射
+                  colormap='spectral',  # 'bone', 'copper', 'gnuplot'
+                  # color=(0, 1, 0),   # Used a fixed (r,g,b) instead
+                  figure=fig,
+                  )
+    # 绘制原点
+    mlab.points3d(0, 0, 0, color=(1, 1, 1), mode="sphere", scale_factor=1)
+    # 绘制坐标
+    axes = np.array(
+        [[20.0, 0.0, 0.0, 0.0], [0.0, 20.0, 0.0, 0.0], [0.0, 0.0, 20.0, 0.0]],
+        dtype=np.float64,
+    )
+    # x轴
+    mlab.plot3d(
+        [0, axes[0, 0]],
+        [0, axes[0, 1]],
+        [0, axes[0, 2]],
+        color=(1, 0, 0),
+        tube_radius=None,
+        figure=fig,
+    )
+    # y轴
+    mlab.plot3d(
+        [0, axes[1, 0]],
+        [0, axes[1, 1]],
+        [0, axes[1, 2]],
+        color=(0, 1, 0),
+        tube_radius=None,
+        figure=fig,
+    )
+    # z轴
+    mlab.plot3d(
+        [0, axes[2, 0]],
+        [0, axes[2, 1]],
+        [0, axes[2, 2]],
+        color=(0, 0, 1),
+        tube_radius=None,
+        figure=fig,
+    )
+    return fig
+
+
+def plot_pointcloud_with_gt_boxes(pointcloud, gt_boxes):
+    import mayavi.mlab as mlab
+    corners3d = boxes_to_corners_3d(gt_boxes)
+    fig = plot_pointcloud(pointcloud)
+    fig = draw_corners3d(corners3d, fig=fig, color=(0, 0, 1))
+    mlab.show()
+
+
+def plot_rangeimage(rangeimage):
+    import PIL.Image as image
+    if len(rangeimage.shape) > 2:
+        rangeimage = rangeimage[..., 0]
+    rangeimage = image.fromarray(rangeimage / rangeimage.max() * 255)
+    rangeimage.show()
+
+
+def boxes_to_corners_3d(boxes3d):
+    """
+        7 -------- 4
+       /|         /|
+      6 -------- 5 .
+      | |        | |
+      . 3 -------- 0
+      |/         |/
+      2 -------- 1
+    Args:
+        boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+
+    Returns:
+    """
+
+    template = np.array((
+        [1, 1, -1], [1, -1, -1], [-1, -1, -1], [-1, 1, -1],
+        [1, 1, 1], [1, -1, 1], [-1, -1, 1], [-1, 1, 1],
+    )) / 2
+
+    corners3d = boxes3d[:, None, 3:6].repeat(8, 1) * template[None, :, :]
+    corners3d = rotate_points_along_z(corners3d.reshape(-1, 8, 3), boxes3d[:, 6]).reshape(-1, 8, 3)
+    corners3d += boxes3d[:, None, 0:3]
+
+    return corners3d
+
+
+def rotate_points_along_z(points, angle):
+    """
+    Args:
+        points: (B, N, 3 + C)
+        angle: (B), angle along z-axis, angle increases x ==> y
+    Returns:
+
+    """
+
+    cosa = np.cos(angle)
+    sina = np.sin(angle)
+    zeros = np.zeros(points.shape[0])
+    ones = np.ones(points.shape[0])
+    rot_matrix = np.stack((
+        cosa, sina, zeros,
+        -sina, cosa, zeros,
+        zeros, zeros, ones
+    ), axis=1).reshape(-1, 3, 3)
+    points_rot = np.matmul(points[:, :, 0:3], rot_matrix)
+    points_rot = np.concatenate((points_rot, points[:, :, 3:]), axis=-1)
+    return points_rot
+
+
+def draw_corners3d(corners3d, fig, color=(1, 1, 1), line_width=2, cls=None, tag='', tube_radius=None):
+    """
+    :param corners3d: (N, 8, 3)
+    :param fig:
+    :param color:
+    :param line_width:
+    :param cls:
+    :param tag:
+    :param max_num:
+    :return:
+    """
+    import mayavi.mlab as mlab
+    num = len(corners3d)
+    for n in range(num):
+        b = corners3d[n]  # (8, 3)
+
+        if cls is not None:
+            if isinstance(cls, np.ndarray):
+                mlab.text3d(b[6, 0], b[6, 1], b[6, 2], '%.2f' % cls[n], scale=(0.3, 0.3, 0.3), color=color, figure=fig)
+            else:
+                mlab.text3d(b[6, 0], b[6, 1], b[6, 2], '%s' % cls[n], scale=(0.3, 0.3, 0.3), color=color, figure=fig)
+
+        for k in range(0, 4):
+            i, j = k, (k + 1) % 4
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 1], b[j, 1]], [b[i, 2], b[j, 2]], color=color,
+                        tube_radius=tube_radius,
+                        line_width=line_width, figure=fig)
+
+            i, j = k + 4, (k + 1) % 4 + 4
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 1], b[j, 1]], [b[i, 2], b[j, 2]], color=color,
+                        tube_radius=tube_radius,
+                        line_width=line_width, figure=fig)
+
+            i, j = k, k + 4
+            mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 1], b[j, 1]], [b[i, 2], b[j, 2]], color=color,
+                        tube_radius=tube_radius,
+                        line_width=line_width, figure=fig)
+
+        i, j = 0, 5
+        mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 1], b[j, 1]], [b[i, 2], b[j, 2]], color=color, tube_radius=tube_radius,
+                    line_width=line_width, figure=fig)
+        i, j = 1, 4
+        mlab.plot3d([b[i, 0], b[j, 0]], [b[i, 1], b[j, 1]], [b[i, 2], b[j, 2]], color=color, tube_radius=tube_radius,
+                    line_width=line_width, figure=fig)
+
+    return fig
 
 
 def points_in_rbbox(points, rbbox, z_axis=2, origin=(0.5, 0.5, 0.5)):

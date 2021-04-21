@@ -4,11 +4,11 @@ import torch
 import torch.nn as nn
 
 from ...ops.iou3d_nms import iou3d_nms_utils
-from .. import backbones_2d, backbones_3d, dense_heads, roi_heads
+from .. import backbones_2d, backbones_3d, dense_heads, roi_heads, backbones_range, seg_heads
 from ..backbones_2d import map_to_bev
-from ..backbones_3d import pfe, vfe, rfe
+from ..backbones_3d import pfe, vfe
+from ..seg_heads import map_to_point_cloud
 from ..model_utils import model_nms_utils
-import pdb
 
 
 class Detector3DTemplate(nn.Module):
@@ -21,8 +21,8 @@ class Detector3DTemplate(nn.Module):
         self.register_buffer('global_step', torch.LongTensor(1).zero_())
 
         self.module_topology = [
-            'rfe', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
-            'backbone_2d', 'dense_head',  'point_head', 'roi_head'
+            'backbone_range', 'seg_head', 'map_to_point_cloud', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
+            'backbone_2d', 'dense_head', 'point_head', 'roi_head'
         ]
 
     @property
@@ -48,20 +48,43 @@ class Detector3DTemplate(nn.Module):
             self.add_module(module_name, module)
         return model_info_dict['module_list']
 
-    def build_rfe(self, model_info_dict):
-        if self.model_cfg.get('RFE', None) is None:
+    def build_backbone_range(self, model_info_dict):
+        if self.model_cfg.get('BACKBONE_RANGE', None) is None:
             return None, model_info_dict
 
-        rfe_module = rfe.__all__[self.model_cfg.RFE.NAME](
+        backbone_range_module = backbones_range.__all__[self.model_cfg.BACKBONE_RANGE.NAME](
             in_channels=3,
-            model_cfg=self.model_cfg.RFE,
+            model_cfg=self.model_cfg.BACKBONE_RANGE,
             num_point_features=model_info_dict['num_rawpoint_features'],
             point_cloud_range=model_info_dict['point_cloud_range'],
             voxel_size=model_info_dict['voxel_size']
         )
-        model_info_dict['num_point_features'] = rfe_module.get_output_feature_dim()
-        model_info_dict['module_list'].append(rfe_module)
-        return rfe_module, model_info_dict
+        model_info_dict['num_point_features'] = backbone_range_module.get_output_feature_dim()
+        model_info_dict['module_list'].append(backbone_range_module)
+        return backbone_range_module, model_info_dict
+
+    def build_seg_head(self, model_info_dict):
+        if self.model_cfg.get('SEG_HEAD', None) is None:
+            return None, model_info_dict
+
+        seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](
+            model_cfg=self.model_cfg.SEG_HEAD,
+            in_channels=model_info_dict['num_point_features'],
+        )
+        model_info_dict['module_list'].append(seg_head_module)
+        return seg_head_module, model_info_dict
+
+    def build_map_to_point_cloud(self, model_info_dict):
+        if self.model_cfg.get('MAP_TO_POINT_CLOUD', None) is None:
+            return None, model_info_dict
+
+        map_to_point_cloud_module = map_to_point_cloud.__all__[self.model_cfg.MAP_TO_POINT_CLOUD.NAME](
+            model_cfg=self.model_cfg.MAP_TO_POINT_CLOUD,
+            point_cloud_range=model_info_dict['point_cloud_range']
+        )
+        model_info_dict['module_list'].append(map_to_point_cloud_module)
+        model_info_dict['num_rawpoint_features'] = model_info_dict['num_rawpoint_features'] + model_info_dict['num_point_features']
+        return map_to_point_cloud_module, model_info_dict
 
     def build_vfe(self, model_info_dict):
         if self.model_cfg.get('VFE', None) is None:

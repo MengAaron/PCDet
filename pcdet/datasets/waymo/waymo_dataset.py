@@ -30,7 +30,6 @@ class WaymoDataset(DatasetTemplate):
         self.include_waymo_data(self.mode)
         self.range_config = dataset_cfg.get('RANGE_CONFIG', False)
 
-
     def set_split(self, split):
         super().__init__(
             dataset_cfg=self.dataset_cfg, class_names=self.class_names, training=self.training,
@@ -152,7 +151,6 @@ class WaymoDataset(DatasetTemplate):
         sequence_name = pc_info['lidar_sequence']
         sample_idx = pc_info['sample_idx']
         points = self.get_lidar(sequence_name, sample_idx)
-
         input_dict = {
             'points': points,
             'frame_id': info['frame_id'],
@@ -179,9 +177,10 @@ class WaymoDataset(DatasetTemplate):
             xflip_dict = self.prepare_data(data_dict=xflip_dict)
             yflip_dict = self.prepare_data(data_dict=yflip_dict)
             dflip_dict = self.prepare_data(data_dict=dflip_dict)
-
-
-        data_dict = self.prepare_data(data_dict=input_dict)
+        if self.range_config:
+            data_dict = self.prepare_data(data_dict=input_dict, process=False)
+        else:
+            data_dict = self.prepare_data(data_dict=input_dict)
         data_dict['metadata'] = info.get('metadata', info['frame_id'])
         data_dict.pop('num_points_in_gt', None)
 
@@ -195,7 +194,13 @@ class WaymoDataset(DatasetTemplate):
                 'extrinsic': info['extrinsic'],
                 'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [64, 2650])
             })
-            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict)
+            # add key 'range_image'(C, H, W), 'range_mask'(H, W), 'ri_indices'(N, 2) to data_dict, 2 means H, W
+            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
+            points_feature_num = data_dict['points'].shape[1]
+            data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
+            data_dict = self.prepare_data(data_dict=data_dict, augment=False)
+            data_dict['points'] = data_dict['points'][:, :points_feature_num]
+            # data_dict = waymo_utils.test(data_dict)
             data_dict.pop('beam_inclination_range', None)
             data_dict.pop('extrinsic', None)
             data_dict.pop('range_image_shape', None)
@@ -361,7 +366,7 @@ class WaymoDataset(DatasetTemplate):
 
 def create_waymo_infos(dataset_cfg, class_names, data_path, save_path,
                        raw_data_tag='raw_data', processed_data_tag='waymo_processed_data',
-                       workers=multiprocessing.cpu_count()):
+                       workers=multiprocessing.cpu_count(), data_split='all'):
     dataset = WaymoDataset(
         dataset_cfg=dataset_cfg, class_names=class_names, root_path=data_path,
         training=False, logger=common_utils.create_logger()
@@ -372,34 +377,35 @@ def create_waymo_infos(dataset_cfg, class_names, data_path, save_path,
     val_filename = save_path / ('waymo_infos_%s.pkl' % val_split)
 
     print('---------------Start to generate data infos---------------')
+    if data_split == 'all' or data_split == 'train':
+        dataset.set_split(train_split)
+        waymo_infos_train = dataset.get_infos(
+            raw_data_path=data_path / raw_data_tag,
+            save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
+            sampled_interval=1
+        )
+        with open(train_filename, 'wb') as f:
+            pickle.dump(waymo_infos_train, f)
+        print('----------------Waymo info train file is saved to %s----------------' % train_filename)
 
-    dataset.set_split(train_split)
-    waymo_infos_train = dataset.get_infos(
-        raw_data_path=data_path / raw_data_tag,
-        save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
-        sampled_interval=1
-    )
-    with open(train_filename, 'wb') as f:
-        pickle.dump(waymo_infos_train, f)
-    print('----------------Waymo info train file is saved to %s----------------' % train_filename)
+    if data_split == 'all' or data_split == 'val':
+        dataset.set_split(val_split)
+        waymo_infos_val = dataset.get_infos(
+            raw_data_path=data_path / raw_data_tag,
+            save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
+            sampled_interval=1
+        )
+        with open(val_filename, 'wb') as f:
+            pickle.dump(waymo_infos_val, f)
+        print('----------------Waymo info val file is saved to %s----------------' % val_filename)
 
-    dataset.set_split(val_split)
-    waymo_infos_val = dataset.get_infos(
-        raw_data_path=data_path / raw_data_tag,
-        save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
-        sampled_interval=1
-    )
-    with open(val_filename, 'wb') as f:
-        pickle.dump(waymo_infos_val, f)
-    print('----------------Waymo info val file is saved to %s----------------' % val_filename)
-
-    print('---------------Start create groundtruth database for data augmentation---------------')
-    dataset.set_split(train_split)
-    dataset.create_groundtruth_database(
-        info_path=train_filename, save_path=save_path, split='train', sampled_interval=10,
-        used_classes=['Vehicle', 'Pedestrian', 'Cyclist']
-    )
-    print('---------------Data preparation Done---------------')
+    # print('---------------Start create groundtruth database for data augmentation---------------')
+    # dataset.set_split(train_split)
+    # dataset.create_groundtruth_database(
+    #     info_path=train_filename, save_path=save_path, split='train', sampled_interval=10,
+    #     used_classes=['Vehicle', 'Pedestrian', 'Cyclist']
+    # )
+    # print('---------------Data preparation Done---------------')
 
 
 if __name__ == '__main__':
@@ -408,20 +414,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default=None, help='specify the config of dataset')
     parser.add_argument('--func', type=str, default='create_waymo_infos', help='')
+    parser.add_argument('--split', type=str, default='all', help='')
+    parser.add_argument('--runs_on', type=str, default='server')
     args = parser.parse_args()
-
     if args.func == 'create_waymo_infos':
         import yaml
         from easydict import EasyDict
 
         dataset_cfg = EasyDict(yaml.load(open(args.cfg_file)))
         ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        data_path = ROOT_DIR / 'data' / 'waymo'
+        if args.runs_on == 'cloud':
+            data_path = Path(dataset_cfg.CLOUD_DATA_PATH)
         create_waymo_infos(
             dataset_cfg=dataset_cfg,
             class_names=['Vehicle', 'Pedestrian', 'Cyclist'],
-            data_path=ROOT_DIR / 'data' / 'waymo',
-            save_path=ROOT_DIR / 'data' / 'waymo',
+            data_path=data_path,
+            save_path=data_path,
             raw_data_tag='raw_data',
-            processed_data_tag=dataset_cfg.PROCESSED_DATA_TAG
+            processed_data_tag=dataset_cfg.PROCESSED_DATA_TAG,
+            data_split=args.split
         )
-

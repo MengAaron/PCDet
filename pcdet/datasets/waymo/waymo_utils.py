@@ -298,6 +298,16 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
             torch.from_numpy(points_vehicle_frame).float(),
             torch.from_numpy(gt_boxes[:, 0:7]).float()
         ).long().numpy()
+
+        # filter gt boxes which contain less points
+        flag_of_gts = point_indices.sum(axis=1)
+        min_points_in_gt = 0
+        flag_of_gts = flag_of_gts > min_points_in_gt
+        gt_boxes = gt_boxes[flag_of_gts]
+        data_dict['gt_boxes'] = gt_boxes
+
+        # less gt points will not be treated as gt points
+        point_indices = point_indices[flag_of_gts]
         flag_of_pts = point_indices.max(axis=0)
         select = flag_of_pts > 0
 
@@ -309,6 +319,7 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
             gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
         range_mask[range_mask > 0] = 1
         data_dict['range_mask'] = range_mask
+        # data_dict['flag_of_pts'] = np.expand_dims(select, axis=1).astype(np.float)
 
     return data_dict
 
@@ -381,7 +392,7 @@ def test(data_dict):
     pudb.set_trace()
     range_mask, ri_mask_indices, ri_mask_ranges = waymo_np.build_range_image_from_point_cloud_np(
         gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
-    # range_mask[range_mask > 0] = 1
+    range_mask[range_mask > 0] = 1
     gt_points_vehicle_frame_tf = tf.convert_to_tensor(np.expand_dims(gt_points_vehicle_frame, axis=0))
     range_mask_tf, ri_mask_indices_tf, ri_mask_ranges_tf = range_image_utils.build_range_image_from_point_cloud(
         gt_points_vehicle_frame_tf, num_points_tf, extrinsic_tf, inclination_tf, range_image_size)

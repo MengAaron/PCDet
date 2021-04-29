@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze
 
 
 class PointGather(nn.Module):
@@ -13,6 +13,22 @@ class PointGather(nn.Module):
         self.mode = 'train' if self.training else 'test'
 
     def forward(self, batch_dict, **kwargs):
+        """
+
+        Args:
+            batch_dict:
+                range_features: (B, C, H, W)
+                seg_mask:(B, H, W)
+                points:(N, batch_idx+xyz+channels)
+                ri_indices:(N, batch_idx+indices)
+                voxels:(voxel_num, max_point_num, features+indices)
+                voxel_coords:(voxel_num, xyz)
+            **kwargs:
+
+        Returns:
+            filtered points and voxels
+
+        """
         batch_dict = self.foreground_points_voxels_filter_and_feature_gather(batch_dict)
         return batch_dict
 
@@ -28,6 +44,9 @@ class PointGather(nn.Module):
         foreground_voxels = []
         foreground_voxel_coords = []
         foreground_voxel_num_points = []
+        # import pudb
+        # pudb.set_trace()
+        # analyze(batch_dict)
 
         for batch_idx in range(batch_size):
             this_range_features = range_features[batch_idx].reshape((height * width, -1))
@@ -38,7 +57,7 @@ class PointGather(nn.Module):
             batch_points_mask = points[:, 0] == batch_idx
             this_points = points[batch_points_mask, :]
             this_ri_indices = ri_indices[batch_points_mask, :]
-            this_ri_indexes = (this_ri_indices[:, 0] * width + this_ri_indices[:, 1]).long()
+            this_ri_indexes = (this_ri_indices[:, 1] * width + this_ri_indices[:, 2]).long()
             this_points_mask = torch.gather(cur_seg_mask, dim=0, index=this_ri_indexes).bool()
             this_points = this_points[this_points_mask]
             this_points_features = this_range_features[this_ri_indexes]
@@ -85,6 +104,3 @@ class PointGather(nn.Module):
         batch_dict['voxel_num_points'] = foreground_voxel_num_points
 
         return batch_dict
-
-    def get_num_point_features(self, batch_dict):
-        return batch_dict['points'].shape[-1] - 1

@@ -195,12 +195,12 @@ class WaymoDataset(DatasetTemplate):
                 'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [64, 2650])
             })
             # add key 'range_image'(C, H, W), 'range_mask'(H, W), 'ri_indices'(N, 2) to data_dict, 2 means H, W
-            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
+            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)\
+            # data_dict = waymo_utils.test(data_dict)
             points_feature_num = data_dict['points'].shape[1]
             data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
             data_dict = self.prepare_data(data_dict=data_dict, augment=False)
             data_dict['points'] = data_dict['points'][:, :points_feature_num]
-            # data_dict = waymo_utils.test(data_dict)
             data_dict.pop('beam_inclination_range', None)
             data_dict.pop('extrinsic', None)
             data_dict.pop('range_image_shape', None)
@@ -388,24 +388,24 @@ def create_waymo_infos(dataset_cfg, class_names, data_path, save_path,
             pickle.dump(waymo_infos_train, f)
         print('----------------Waymo info train file is saved to %s----------------' % train_filename)
 
-    if data_split == 'all' or data_split == 'val':
-        dataset.set_split(val_split)
-        waymo_infos_val = dataset.get_infos(
-            raw_data_path=data_path / raw_data_tag,
-            save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
-            sampled_interval=1
-        )
-        with open(val_filename, 'wb') as f:
-            pickle.dump(waymo_infos_val, f)
-        print('----------------Waymo info val file is saved to %s----------------' % val_filename)
+    # if data_split == 'all' or data_split == 'val':
+    #     dataset.set_split(val_split)
+    #     waymo_infos_val = dataset.get_infos(
+    #         raw_data_path=data_path / raw_data_tag,
+    #         save_path=save_path / processed_data_tag, num_workers=workers, has_label=True,
+    #         sampled_interval=1
+    #     )
+    #     with open(val_filename, 'wb') as f:
+    #         pickle.dump(waymo_infos_val, f)
+    #     print('----------------Waymo info val file is saved to %s----------------' % val_filename)
 
-    # print('---------------Start create groundtruth database for data augmentation---------------')
-    # dataset.set_split(train_split)
-    # dataset.create_groundtruth_database(
-    #     info_path=train_filename, save_path=save_path, split='train', sampled_interval=10,
-    #     used_classes=['Vehicle', 'Pedestrian', 'Cyclist']
-    # )
-    # print('---------------Data preparation Done---------------')
+    print('---------------Start create groundtruth database for data augmentation---------------')
+    dataset.set_split(train_split)
+    dataset.create_groundtruth_database(
+        info_path=train_filename, save_path=save_path, split='train', sampled_interval=10,
+        used_classes=['Vehicle', 'Pedestrian', 'Cyclist']
+    )
+    print('---------------Data preparation Done---------------')
 
 
 if __name__ == '__main__':

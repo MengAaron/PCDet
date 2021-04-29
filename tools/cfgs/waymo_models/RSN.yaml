@@ -1,23 +1,18 @@
+#CLASS_NAMES: ['Vehicle']
 CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
-    DATA_SPLIT: {
-        'train': val,
-        'test': val
-    }
+    POINT_CLOUD_RANGE: [-79.5, -79.5, -5, 79.5, 79.5, 5]
 
-    SAMPLED_INTERVAL: {
-      'train': 10,
-      'test': 10
-    }
+    USE_DOUBLE_FLIP_TEST: &double_flip False
 
     DATA_PROCESSOR:
       - NAME: mask_points_and_boxes_outside_range
         REMOVE_OUTSIDE_BOXES: True
 
       - NAME: transform_points_to_voxels
-        VOXEL_SIZE: [ 0.1, 0.1, 0.15 ]
+        VOXEL_SIZE: [ 0.2, 0.2, 0.3 ]
         MAX_POINTS_PER_VOXEL: 5
         MAX_NUMBER_OF_VOXELS: {
             'train': 80000,
@@ -41,81 +36,78 @@ MODEL:
         FOREGROUND_THRESHOLD: 0.1
 
     VFE:
-        NAME: MeanVFE
+      NAME: MeanVFE
 
     BACKBONE_3D:
-        NAME: VoxelBackBone8x
+      NAME: CarS
 
     MAP_TO_BEV:
-        NAME: HeightCompression
-        NUM_BEV_FEATURES: 256
+      NAME: HeightCompression
+      NUM_BEV_FEATURES: 864
 
     BACKBONE_2D:
-        NAME: BaseBEVBackbone
+      NAME: BaseBEVBackbone
 
-        LAYER_NUMS: [5, 5]
-        LAYER_STRIDES: [1, 2]
-        NUM_FILTERS: [128, 256]
-        UPSAMPLE_STRIDES: [1, 2]
-        NUM_UPSAMPLE_FILTERS: [256, 256]
+      LAYER_NUMS: [ 5, 5 ]
+      LAYER_STRIDES: [ 1, 2 ]
+      NUM_FILTERS: [ 128, 256 ]
+      UPSAMPLE_STRIDES: [ 1, 2 ]
+      NUM_UPSAMPLE_FILTERS: [ 256, 256 ]
 
     DENSE_HEAD:
-        NAME: AnchorHeadSingle
+        NAME: CenterHead
         CLASS_AGNOSTIC: False
+        DATASET: waymo
+        MODE: 3d
+        USE_DCN: False
+        NO_LOG: False
+        TASKS: &tasks_head
+          - num_class: 1
+            class_names: ['Vehicle']
+          - num_class: 1
+            class_names: ['Pedestrian']
+          - num_class: 1
+            class_names: ['Cyclist']
 
-        USE_DIRECTION_CLASSIFIER: True
-        DIR_OFFSET: 0.78539
-        DIR_LIMIT_OFFSET: 0.0
-        NUM_DIR_BINS: 2
-
-        ANCHOR_GENERATOR_CONFIG: [
-            {
-                'class_name': 'Vehicle',
-                'anchor_sizes': [[4.7, 2.1, 1.7]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.55,
-                'unmatched_threshold': 0.4
-            },
-            {
-                'class_name': 'Pedestrian',
-                'anchor_sizes': [[0.91, 0.86, 1.73]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
-            },
-            {
-                'class_name': 'Cyclist',
-                'anchor_sizes': [[1.78, 0.84, 1.78]],
-                'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
-                'align_center': False,
-                'feature_map_stride': 8,
-                'matched_threshold': 0.5,
-                'unmatched_threshold': 0.35
-            }
-        ]
-
-        TARGET_ASSIGNER_CONFIG:
-            NAME: AxisAlignedTargetAssigner
-            POS_FRACTION: -1.0
-            SAMPLE_SIZE: 512
-            NORM_BY_NUM_EXAMPLES: False
-            MATCH_HEIGHT: False
-            BOX_CODER: ResidualCoder
+        PARAMETERS:
+          share_conv_channel: 64 # may not correct
+          init_bias: -2.19
+          common_heads: {'reg': [2,2], 'height': [1,2], 'dim': [3,2], 'rot': [2,2]} # {cat: [classes, num_conv]}
 
         LOSS_CONFIG:
-            LOSS_WEIGHTS: {
-                'cls_weight': 1.0,
-                'loc_weight': 2.0,
-                'dir_weight': 0.2,
-                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+          code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+          weight: 0.2
+
+        TARGET_ASSIGNER_CONFIG:
+            NAME: CenterAssigner
+            BOX_CODER: ResidualCoder
+            tasks: *tasks_head
+            out_size_factor: 4
+            dense_reg: 1
+            gaussian_overlap: 0.1
+            max_objs: 500
+            min_radius: 2
+            mapping: {
+                'Vehicle' :1,
+                'Pedestrian': 2,
+                'Cyclist': 3
             }
+
+        TEST_CONFIG:
+            double_flip: *double_flip
+            post_center_limit_range: [-80, -80, -10.0, 80, 80, 10.0]
+            score_threshold: 0.1
+            pc_range: [-75.2, -75.2]
+            out_size_factor: 4
+            voxel_size: [0.2, 0.2]
+            nms:
+                use_rotate_nms: True
+                use_multi_class_nms: False
+                use_circle_nms: False
+                use_max_pool_nms: False
+                nms_pre_max_size: 4096
+                nms_post_max_size: 500
+                nms_iou_threshold: 0.7
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
@@ -130,6 +122,12 @@ MODEL:
             NMS_THRESH: 0.01
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
+
+    LOSS_CONFIG:
+        LOSS_WEIGHTS: {
+            'seg_weight': 80.0,
+            'rpn_weight': 1.0
+        }
 
 
 OPTIMIZATION:

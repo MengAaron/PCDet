@@ -2,49 +2,47 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
-    POINT_CLOUD_RANGE: [-80, -80, -2, 80, 80, 4]
 
+    POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
     DATA_PROCESSOR:
-      - NAME: mask_points_and_boxes_outside_range
-        REMOVE_OUTSIDE_BOXES: True
+        - NAME: mask_points_and_boxes_outside_range
+          REMOVE_OUTSIDE_BOXES: True
 
-      - NAME: shuffle_points
-        SHUFFLE_ENABLED: {
-          'train': True,
-          'test': True
-        }
+        - NAME: shuffle_points
+          SHUFFLE_ENABLED: {
+            'train': True,
+            'test': False
+          }
 
-      - NAME: transform_points_to_voxels
-        VOXEL_SIZE: [ 0.2, 0.2, 0.3 ]
-        MAX_POINTS_PER_VOXEL: 5
-        MAX_NUMBER_OF_VOXELS: {
-          'train': 80000,
-          'test': 90000
-        }
-
-
+        - NAME: transform_points_to_voxels
+          VOXEL_SIZE: [0.2, 0.2, 6]
+          MAX_POINTS_PER_VOXEL: 32
+          MAX_NUMBER_OF_VOXELS: {
+            'train': 80000,
+            'test': 90000
+          }
 
 MODEL:
-    NAME: SECONDNet
+    NAME: PointPillar
 
     VFE:
-        NAME: MeanVFE
-
-    BACKBONE_3D:
-        NAME: CarS
+        NAME: PillarVFE
+        WITH_DISTANCE: False
+        USE_ABSLOTE_XYZ: True
+        USE_NORM: True
+        NUM_FILTERS: [64]
 
     MAP_TO_BEV:
-        NAME: HeightCompression
-        NUM_BEV_FEATURES: 576
+        NAME: PointPillarScatter
+        NUM_BEV_FEATURES: 64
 
     BACKBONE_2D:
         NAME: BaseBEVBackbone
-
-        LAYER_NUMS: [5, 5]
-        LAYER_STRIDES: [1, 2]
-        NUM_FILTERS: [128, 256]
-        UPSAMPLE_STRIDES: [1, 2]
-        NUM_UPSAMPLE_FILTERS: [256, 256]
+        LAYER_NUMS: [3, 5, 5]
+        LAYER_STRIDES: [2, 2, 2]
+        NUM_FILTERS: [64, 128, 256]
+        UPSAMPLE_STRIDES: [1, 2, 4]
+        NUM_UPSAMPLE_FILTERS: [128, 128, 128]
 
     DENSE_HEAD:
         NAME: AnchorHeadSingle
@@ -58,31 +56,31 @@ MODEL:
         ANCHOR_GENERATOR_CONFIG: [
             {
                 'class_name': 'Vehicle',
-                'anchor_sizes': [[4.7, 2.1, 1.7]],
+                'anchor_sizes': [[3.9, 1.6, 1.56]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
+                'anchor_bottom_heights': [-1.78],
                 'align_center': False,
-                'feature_map_stride': 4,
-                'matched_threshold': 0.55,
-                'unmatched_threshold': 0.4
+                'feature_map_stride': 2,
+                'matched_threshold': 0.6,
+                'unmatched_threshold': 0.45
             },
             {
                 'class_name': 'Pedestrian',
-                'anchor_sizes': [[0.91, 0.86, 1.73]],
+                'anchor_sizes': [[0.8, 0.6, 1.73]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
+                'anchor_bottom_heights': [-0.6],
                 'align_center': False,
-                'feature_map_stride': 4,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.5,
                 'unmatched_threshold': 0.35
             },
             {
                 'class_name': 'Cyclist',
-                'anchor_sizes': [[1.78, 0.84, 1.78]],
+                'anchor_sizes': [[1.76, 0.6, 1.73]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [0],
+                'anchor_bottom_heights': [-0.6],
                 'align_center': False,
-                'feature_map_stride': 4,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.5,
                 'unmatched_threshold': 0.35
             }

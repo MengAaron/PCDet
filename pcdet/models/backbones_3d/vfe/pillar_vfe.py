@@ -10,17 +10,22 @@ class PFNLayer(nn.Module):
                  in_channels,
                  out_channels,
                  use_norm=True,
-                 last_layer=False):
+                 last_layer=False,
+                 layer_norm=False):
         super().__init__()
-        
+
         self.last_vfe = last_layer
         self.use_norm = use_norm
+        self.layer_norm = layer_norm
         if not self.last_vfe:
             out_channels = out_channels // 2
 
         if self.use_norm:
             self.linear = nn.Linear(in_channels, out_channels, bias=False)
-            self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
+            if not self.layer_norm:
+                self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
+            else:
+                self.norm = nn.LayerNorm(out_channels, eps=1e-3)
         else:
             self.linear = nn.Linear(in_channels, out_channels, bias=True)
 
@@ -30,13 +35,14 @@ class PFNLayer(nn.Module):
         if inputs.shape[0] > self.part:
             # nn.Linear performs randomly when batch size is too large
             num_parts = inputs.shape[0] // self.part
-            part_linear_out = [self.linear(inputs[num_part*self.part:(num_part+1)*self.part])
-                               for num_part in range(num_parts+1)]
+            part_linear_out = [self.linear(inputs[num_part * self.part:(num_part + 1) * self.part])
+                               for num_part in range(num_parts + 1)]
             x = torch.cat(part_linear_out, dim=0)
         else:
             x = self.linear(inputs)
         torch.backends.cudnn.enabled = False
-        x = self.norm(x.permute(0, 2, 1)).permute(0, 2, 1) if self.use_norm else x
+        if self.use_norm:
+            x = self.norm(x.permute(0, 2, 1)).permute(0, 2, 1) if not self.layer_norm else self.norm(x)
         torch.backends.cudnn.enabled = True
         x = F.relu(x)
         x_max = torch.max(x, dim=1, keepdim=True)[0]
@@ -61,6 +67,7 @@ class PillarVFE(VFETemplate):
             num_point_features += 1
 
         self.num_filters = self.model_cfg.NUM_FILTERS
+        self.layer_norm = self.model_cfg.get('LAYER_NORM', False)
         assert len(self.num_filters) > 0
         num_filters = [num_point_features] + list(self.num_filters)
 
@@ -69,7 +76,8 @@ class PillarVFE(VFETemplate):
             in_filters = num_filters[i]
             out_filters = num_filters[i + 1]
             pfn_layers.append(
-                PFNLayer(in_filters, out_filters, self.use_norm, last_layer=(i >= len(num_filters) - 2))
+                PFNLayer(in_filters, out_filters, self.use_norm, last_layer=(i >= len(num_filters) - 2),
+                         layer_norm=self.layer_norm)
             )
         self.pfn_layers = nn.ModuleList(pfn_layers)
 
@@ -92,15 +100,20 @@ class PillarVFE(VFETemplate):
         return paddings_indicator
 
     def forward(self, batch_dict, **kwargs):
-  
-        voxel_features, voxel_num_points, coords = batch_dict['voxels'], batch_dict['voxel_num_points'], batch_dict['voxel_coords']
-        points_mean = voxel_features[:, :, :3].sum(dim=1, keepdim=True) / voxel_num_points.type_as(voxel_features).view(-1, 1, 1)
+
+        voxel_features, voxel_num_points, coords = batch_dict['voxels'], batch_dict['voxel_num_points'], batch_dict[
+            'voxel_coords']
+        points_mean = voxel_features[:, :, :3].sum(dim=1, keepdim=True) / voxel_num_points.type_as(voxel_features).view(
+            -1, 1, 1)
         f_cluster = voxel_features[:, :, :3] - points_mean
 
         f_center = torch.zeros_like(voxel_features[:, :, :3])
-        f_center[:, :, 0] = voxel_features[:, :, 0] - (coords[:, 3].to(voxel_features.dtype).unsqueeze(1) * self.voxel_x + self.x_offset)
-        f_center[:, :, 1] = voxel_features[:, :, 1] - (coords[:, 2].to(voxel_features.dtype).unsqueeze(1) * self.voxel_y + self.y_offset)
-        f_center[:, :, 2] = voxel_features[:, :, 2] - (coords[:, 1].to(voxel_features.dtype).unsqueeze(1) * self.voxel_z + self.z_offset)
+        f_center[:, :, 0] = voxel_features[:, :, 0] - (
+                    coords[:, 3].to(voxel_features.dtype).unsqueeze(1) * self.voxel_x + self.x_offset)
+        f_center[:, :, 1] = voxel_features[:, :, 1] - (
+                    coords[:, 2].to(voxel_features.dtype).unsqueeze(1) * self.voxel_y + self.y_offset)
+        f_center[:, :, 2] = voxel_features[:, :, 2] - (
+                    coords[:, 1].to(voxel_features.dtype).unsqueeze(1) * self.voxel_z + self.z_offset)
 
         if self.use_absolute_xyz:
             features = [voxel_features, f_cluster, f_center]

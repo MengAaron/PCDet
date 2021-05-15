@@ -14,6 +14,7 @@ from pcdet.models import build_network, load_data_to_gpu
 from pcdet.utils import common_utils
 from visual_utils import visualize_utils as V
 import matplotlib.pyplot as plt
+from pcdet.ops.roiaware_pool3d import roiaware_pool3d_utils
 
 
 class DemoDataset(DatasetTemplate):
@@ -130,6 +131,7 @@ def main():
             # pudb.set_trace()
             mask = pred_dicts[0]['pred_boxes'][:, 3:6] < 20
             mask = mask.all(dim=1)
+            gt_boxes = data_dict.get('gt_boxes', None)[0].cpu().numpy()
 
             # V.draw_scenes(
             #     points=data_dict['points'][:, 1:4],
@@ -140,23 +142,29 @@ def main():
             # )
             # mlab.show(stop=True)
             points = data_dict['points'][:, 1:4].cpu().numpy()
+            point_indices = roiaware_pool3d_utils.points_in_boxes_cpu(
+                torch.from_numpy(points).float(),
+                torch.from_numpy(gt_boxes[:, 0:7]).float()
+            ).long().numpy()
+            flag_of_pts = point_indices.max(axis=0)
+            select = flag_of_pts > 0
             rgba_colors = np.zeros((points.shape[0], 4))
             rgba_colors[:, 2] = 1
             rgba_colors[:, 3] = points[:, 2]
-            plt.scatter(points[:, 0], points[:, 1], s=0.5, color=rgba_colors[:, :3])
+            plt.scatter(points[:, 0], points[:, 1], s=0.3, color=rgba_colors[:, :3])
 
-            gt_boxes = data_dict.get('gt_boxes', None)[0].cpu().numpy()
+
             gt_corners = V.boxes_to_corners_3d(gt_boxes)
             gt_corners = gt_corners.transpose((1, 2, 0))
             x1, x2, x3, x4 = gt_corners[:4, 0]
             y1, y2, y3, y4 = gt_corners[:4, 1]
-            plt.plot((x1, x2, x3, x4, x1), (y1, y2, y3, y4, y1), color='yellowgreen', linewidth=2)
+            plt.plot((x1, x2, x3, x4, x1), (y1, y2, y3, y4, y1), color='yellowgreen', linewidth=1)
             pred_boxes = pred_dicts[0]['pred_boxes'][mask].cpu().numpy()
             pred_corners = V.boxes_to_corners_3d(pred_boxes[:100])
             pred_corners = pred_corners.transpose((1, 2, 0))
             x1, x2, x3, x4 = pred_corners[:4, 0]
             y1, y2, y3, y4 = pred_corners[:4, 1]
-            plt.plot((x1, x2, x3, x4, x1), (y1, y2, y3, y4, y1), color='red', linewidth=2)
+            plt.plot((x1, x2, x3, x4, x1), (y1, y2, y3, y4, y1), color='red', linewidth=1)
             plt.savefig('bev-%d-second.png'%idx)
             plt.clf()
             # plt.show()

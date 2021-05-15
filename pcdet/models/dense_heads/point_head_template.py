@@ -75,6 +75,7 @@ class PointHeadTemplate(nn.Module):
         point_cls_labels = points.new_zeros(points.shape[0]).long()
         point_box_labels = gt_boxes.new_zeros((points.shape[0], 8)) if ret_box_labels else None
         point_part_labels = gt_boxes.new_zeros((points.shape[0], 3)) if ret_part_labels else None
+        gt_boxes_of_fg_points = []
         for k in range(batch_size):
             bs_mask = (bs_idx == k)
             points_single = points[bs_mask][:, 1:4]
@@ -101,6 +102,7 @@ class PointHeadTemplate(nn.Module):
             gt_box_of_fg_points = gt_boxes[k][box_idxs_of_pts[fg_flag]]
             point_cls_labels_single[fg_flag] = 1 if self.num_class == 1 else gt_box_of_fg_points[:, -1].long()
             point_cls_labels[bs_mask] = point_cls_labels_single
+            gt_boxes_of_fg_points.append(gt_box_of_fg_points)
 
             if ret_box_labels and gt_box_of_fg_points.shape[0] > 0:
                 point_box_labels_single = point_box_labels.new_zeros((bs_mask.sum(), 8))
@@ -121,10 +123,13 @@ class PointHeadTemplate(nn.Module):
                 point_part_labels_single[fg_flag] = (transformed_points / gt_box_of_fg_points[:, 3:6]) + offset
                 point_part_labels[bs_mask] = point_part_labels_single
 
+        gt_boxes_of_fg_points = torch.cat(gt_boxes_of_fg_points, dim=0)
         targets_dict = {
             'point_cls_labels': point_cls_labels,
             'point_box_labels': point_box_labels,
-            'point_part_labels': point_part_labels
+            'point_part_labels': point_part_labels,
+            'box_idxs_of_pts': box_idxs_of_pts,
+            'gt_box_of_fg_points': gt_boxes_of_fg_points,
         }
         return targets_dict
 

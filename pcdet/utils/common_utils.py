@@ -193,3 +193,114 @@ def merge_results_dist(result_part, size, tmpdir):
     ordered_results = ordered_results[:size]
     shutil.rmtree(tmpdir)
     return ordered_results
+
+
+# ******************* for 3DSSD *****************************
+def calc_square_dist(a, b, norm=True):
+    """
+    Calculating square distance between a and b
+    a: [B, N, c]
+    b: [B, M, c]
+    """
+    n = a.shape[1]
+    m = b.shape[1]
+    num_channel = a.shape[-1]
+    a_square = a.unsqueeze(dim=2)  # [bs, n, 1, c]
+    b_square = b.unsqueeze(dim=1)  # [bs, 1, m, c]
+    a_square = torch.sum(a_square * a_square, dim=-1)  # [bs, n, 1]
+    b_square = torch.sum(b_square * b_square, dim=-1)  # [bs, 1, m]
+    a_square = a_square.repeat((1, 1, m))  # [bs, n, m]
+    b_square = b_square.repeat((1, n, 1))  # [bs, n, m]
+
+    coor = torch.matmul(a, b.transpose(1, 2))  # [bs, n, m]
+
+    if norm:
+        dist = a_square + b_square - 2.0 * coor  # [bs, npoint, ndataset]
+        # dist = torch.sqrt(dist)
+    else:
+        dist = a_square + b_square - 2 * coor
+        # dist = torch.sqrt(dist)
+    return dist
+
+
+def init_dist_pytorch(tcp_port, local_rank, backend='nccl'):
+    if mp.get_start_method(allow_none=True) is None:
+        mp.set_start_method('spawn')
+
+    num_gpus = torch.cuda.device_count()
+    torch.cuda.set_device(local_rank % num_gpus)
+    dist.init_process_group(
+        backend=backend,
+        init_method='tcp://127.0.0.1:%d' % tcp_port,
+        rank=local_rank,
+        world_size=num_gpus
+    )
+    rank = dist.get_rank()
+    return num_gpus, rank
+
+
+def get_dist_info():
+    if torch.__version__ < '1.0':
+        initialized = dist._initialized
+    else:
+        if dist.is_available():
+            initialized = dist.is_initialized()
+        else:
+            initialized = False
+    if initialized:
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
+    else:
+        rank = 0
+        world_size = 1
+    return rank, world_size
+
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def create_logger(log_file=None, rank=0, log_level=logging.INFO):
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level if rank == 0 else 'ERROR')
+    formatter = logging.Formatter('%(asctime)s  %(levelname)5s  %(message)s')
+    console = logging.StreamHandler()
+    console.setLevel(log_level if rank == 0 else 'ERROR')
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    if log_file is not None:
+        file_handler = logging.FileHandler(filename=log_file)
+        file_handler.setLevel(log_level if rank == 0 else 'ERROR')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    return logger
+
+
+def merge_results_dist(result_part, size, tmpdir):
+    rank, world_size = get_dist_info()
+    os.makedirs(tmpdir, exist_ok=True)
+
+    dist.barrier()
+    pickle.dump(result_part, open(os.path.join(tmpdir, 'result_part_{}.pkl'.format(rank)), 'wb'))
+    dist.barrier()
+
+    if rank != 0:
+        return None
+
+    part_list = []
+    for i in range(world_size):
+        part_file = os.path.join(tmpdir, 'result_part_{}.pkl'.format(i))  # dict_list: [dict, dict, dict, ...]
+        part_list.append(pickle.load(open(part_file, 'rb')))    # [dict_list, dict_list, dict_list, ...]
+
+    # 按照dataset的顺序排列
+    ordered_results = []
+    for res in zip(*part_list):
+        ordered_results.extend(list(res))
+
+    ordered_results = ordered_results[:size]
+    shutil.rmtree(tmpdir)
+    return ordered_results

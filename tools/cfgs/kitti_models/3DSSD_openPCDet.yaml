@@ -17,6 +17,7 @@ DATA_CONFIG:
             SHUFFLE_ENABLED: {
                 'train': True,
                 'test': False
+            }
 
 MODEL:
     NAME: 3DSSD

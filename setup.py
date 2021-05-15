@@ -106,6 +106,23 @@ if __name__ == '__main__':
                     'src/sampling_gpu.cu',
 
                 ],
+
+            ),
+            make_cuda_ext(
+                name='pointnet2_3DSSD_cuda',
+                module='pcdet.ops.pointnet2.pointnet2_3DSSD',
+                sources=[
+                    'src/pointnet2_api.cpp',
+                    'src/ball_query.cpp',
+                    'src/ball_query_gpu.cu',
+                    'src/group_points.cpp',
+                    'src/group_points_gpu.cu',
+                    'src/interpolate.cpp',
+                    'src/interpolate_gpu.cu',
+                    'src/sampling.cpp',
+                    'src/sampling_gpu.cu',
+                ],
+
             ),
         ],
     )

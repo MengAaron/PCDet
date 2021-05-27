@@ -11,6 +11,11 @@ DATA_CONFIG:
       'test': 1
     }
 
+    DATA_SPLIT: {
+        'train': trainval,
+        'test': trainval
+    }
+
 
     DATA_PROCESSOR:
       - NAME: mask_points_and_boxes_outside_range

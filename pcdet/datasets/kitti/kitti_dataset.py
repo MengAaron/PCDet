@@ -44,7 +44,9 @@ class KittiDataset(DatasetTemplate):
                 continue
             with open(info_path, 'rb') as f:
                 infos = pickle.load(f)
-                kitti_infos.extend(infos)
+            for sample_id in self.sample_id_list:
+                sample_id = int(sample_id)
+                kitti_infos.extend(infos[sample_id])
 
         self.kitti_infos.extend(kitti_infos)
 

@@ -68,15 +68,19 @@ class DemoDataset(DatasetTemplate):
             data_dict = self.prepare_data(data_dict=input_dict)
 
         if self.range_config:
+            beam_inclination_range = info.get('beam_inclination_range', (
+            -0.43458698374658805, 0.03490658503988659)) if self.info_path is not None else (
+            -0.43458698374658805, 0.03490658503988659)
+            extrinsic = info.get('extrinsic', None) if self.info_path is not None else None
             data_dict.update({
-                'beam_inclination_range': info['beam_inclination_range'],
-                'extrinsic': info['extrinsic'],
+                'beam_inclination_range': beam_inclination_range,
+                'extrinsic': extrinsic,
                 'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [64, 2650]),
             })
             import pcdet.datasets.waymo.waymo_utils as waymo_utils
             data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
-            data_dict['range_image'] = np.concatenate((data_dict['range_image'], data_dict['ri_xyz']), axis=0)
-            data_dict.pop('ri_xyz', None)
+            # data_dict['range_image'] = np.concatenate((data_dict['range_image'], data_dict['ri_xyz']), axis=0)
+            # data_dict.pop('ri_xyz', None)
             points_feature_num = data_dict['points'].shape[1]
             data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
             data_dict = self.prepare_data(data_dict=data_dict, augment=False)

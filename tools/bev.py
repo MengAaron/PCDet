@@ -192,8 +192,8 @@ def main():
             mask2 = mask2 & mask_score
 
             points = data_dict['points'][:, 1:4].cpu().numpy()
-            # import pudb
-            # pudb.set_trace()
+            import pudb
+            pudb.set_trace()
             x_points = points[:, 0]
             y_points = points[:, 1]
             # z_points = points[:, 2]
@@ -235,10 +235,10 @@ def main():
             # draw_boxes(ax, data_dict.get('gt_boxes', None)[0].cpu().numpy(), pc_range, color='blue')
             # import pudb
             # pudb.set_trace()
-            draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2][:100].cpu().numpy(), pc_range, color='red')
+            draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2].cpu().numpy(), pc_range, color='red')
             plt.axis('off')
             plt.tight_layout()
-            plt.savefig('result/bev-%d-rrcnn.png' % idx)
+            plt.savefig('result/bev-%d-rdet.png' % idx)
             plt.clf()
             # rgba_colors = np.zeros((points.shape[0], 4))
             # rgba_colors[:, 2] = 1

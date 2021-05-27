@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import kornia
+
 
 from pcdet.utils import transform_utils
 
@@ -30,6 +30,7 @@ class FrustumGridGenerator(nn.Module):
 
         # Create voxel grid
         self.depth, self.width, self.height = self.grid_size.int()
+        import kornia
         self.voxel_grid = kornia.utils.create_meshgrid3d(depth=self.depth,
                                                          height=self.height,
                                                          width=self.width,
@@ -85,6 +86,7 @@ class FrustumGridGenerator(nn.Module):
         voxel_grid = voxel_grid.repeat_interleave(repeats=B, dim=0)
 
         # Transform to camera frame
+        import kornia
         camera_grid = kornia.transform_points(trans_01=trans, points_1=voxel_grid)
 
         # Project to image

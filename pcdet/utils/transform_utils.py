@@ -1,6 +1,6 @@
 import math
 import torch
-import kornia
+
 
 
 def project_to_image(project, points):
@@ -14,6 +14,7 @@ def project_to_image(project, points):
         points_depth [torch.Tensor(...)]: Depth of each point
     """
     # Reshape tensors to expected shape
+    import kornia
     points = kornia.convert_points_to_homogeneous(points)
     points = points.unsqueeze(dim=-1)
     project = project.unsqueeze(dim=1)

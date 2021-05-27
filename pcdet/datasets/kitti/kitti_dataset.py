@@ -37,8 +37,8 @@ class KittiDataset(DatasetTemplate):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
         kitti_infos = []
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
 
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path
@@ -48,7 +48,7 @@ class KittiDataset(DatasetTemplate):
                 infos = pickle.load(f)
             for sample_id in self.sample_id_list:
                 sample_id = int(sample_id)
-                kitti_infos.extend(infos[sample_id])
+                kitti_infos.append(infos[sample_id])
 
         self.kitti_infos.extend(kitti_infos)
 

@@ -192,8 +192,8 @@ def main():
             mask2 = mask2 & mask_score
 
             points = data_dict['points'][:, 1:4].cpu().numpy()
-            import pudb
-            pudb.set_trace()
+            # import pudb
+            # pudb.set_trace()
             x_points = points[:, 0]
             y_points = points[:, 1]
             # z_points = points[:, 2]

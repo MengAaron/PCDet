@@ -188,6 +188,8 @@ def main():
             mask2 = pred_dicts[0]['pred_boxes'][:, 4] / pred_dicts[0]['pred_boxes'][:, 3]
             mask2 = (mask2 < 20) & (mask2 > 0.05)
             mask2 = mask2 & mask
+            mask_score = pred_dicts[0]['pred_scores'] > 0.7
+            mask2 = mask2 & mask_score
 
             points = data_dict['points'][:, 1:4].cpu().numpy()
             # import pudb

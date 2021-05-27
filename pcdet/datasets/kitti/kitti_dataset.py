@@ -37,8 +37,8 @@ class KittiDataset(DatasetTemplate):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
         kitti_infos = []
-        # import pudb
-        # pudb.set_trace()
+        import pudb
+        pudb.set_trace()
 
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path
@@ -375,8 +375,8 @@ class KittiDataset(DatasetTemplate):
         return len(self.kitti_infos)
 
     def __getitem__(self, index):
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         # index = 4
         if self._merge_all_iters_to_one_epoch:
             index = index % len(self.kitti_infos)

@@ -161,6 +161,7 @@ def draw_boxes(ax, boxes, pc_range, color='green'):
 
 def main():
     args, cfg = parse_config()
+    TAG = str(Path(args.cfg_file).stem)
     logger = common_utils.create_logger()
     logger.info('-----------------Quick Demo of OpenPCDet-------------------------')
     demo_dataset = DemoDataset(
@@ -238,7 +239,7 @@ def main():
             draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2].cpu().numpy(), pc_range, color='red')
             plt.axis('off')
             plt.tight_layout()
-            plt.savefig('result/bev-%d-rdet.png' % idx)
+            plt.savefig('result/bev-%d-%s.png' % (idx, TAG))
             plt.clf()
             # rgba_colors = np.zeros((points.shape[0], 4))
             # rgba_colors[:, 2] = 1

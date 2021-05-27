@@ -79,8 +79,8 @@ class DemoDataset(DatasetTemplate):
             })
             import pcdet.datasets.waymo.waymo_utils as waymo_utils
             data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
-            # data_dict['range_image'] = np.concatenate((data_dict['range_image'], data_dict['ri_xyz']), axis=0)
-            # data_dict.pop('ri_xyz', None)
+            data_dict['range_image'] = np.concatenate((data_dict['range_image'], data_dict['ri_xyz']), axis=0)
+            data_dict.pop('ri_xyz', None)
             points_feature_num = data_dict['points'].shape[1]
             data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
             data_dict = self.prepare_data(data_dict=data_dict, augment=False)
@@ -138,8 +138,8 @@ def main():
             mask2 = pred_dicts[0]['pred_boxes'][:, 4] / pred_dicts[0]['pred_boxes'][:, 3]
             mask2 = (mask2 < 20) & (mask2 > 0.05)
             mask2 = mask2 & mask
-            mask_score = pred_dicts[0]['pred_scores'] > 0.7
-            mask2 = mask2 & mask_score
+            # mask_score = pred_dicts[0]['pred_scores'] > 0.7
+            # mask2 = mask2 & mask_score
 
 
             # import open3d

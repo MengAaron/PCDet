@@ -373,8 +373,8 @@ class KittiDataset(DatasetTemplate):
         return len(self.kitti_infos)
 
     def __getitem__(self, index):
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         # index = 4
         if self._merge_all_iters_to_one_epoch:
             index = index % len(self.kitti_infos)

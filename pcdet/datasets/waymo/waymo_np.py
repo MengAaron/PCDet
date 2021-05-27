@@ -125,19 +125,25 @@ def encode_lidar_features(lidar_point_feature):
     """
     if lidar_point_feature.dtype != np.float32:
         raise TypeError('lidar_point_feature must be of type float32.')
+    feature_tuple = list(map(np.squeeze, np.split(lidar_point_feature, lidar_point_feature.shape[-1], axis=-1)))
+    r = feature_tuple[0]
+    intensity = feature_tuple[1]
 
-    r, intensity, elongation = list(map(np.squeeze, np.split(lidar_point_feature, 3, axis=-1)))
     encoded_r = _encode_range(r).astype(np.uint32)
     encoded_intensity = _encode_intensity(intensity).astype(np.uint32)
-    encoded_elongation = _encode_elongation(elongation).astype(np.uint32)
 
     encoded_r_shifted = np.left_shift(encoded_r, 16)
-
     encoded_intensity = np.bitwise_or(encoded_r_shifted, encoded_intensity).astype(np.int64)
-    encoded_elongation = np.bitwise_or(encoded_r_shifted, encoded_elongation).astype(np.int64)
     encoded_r = encoded_r.astype(np.int64)
 
-    return np.stack([encoded_r, encoded_intensity, encoded_elongation], axis=-1)
+    if len(feature_tuple) > 2:
+        elongation = feature_tuple[2]
+        encoded_elongation = _encode_elongation(elongation).astype(np.uint32)
+        encoded_elongation = np.bitwise_or(encoded_r_shifted, encoded_elongation).astype(np.int64)
+
+        return np.stack([encoded_r, encoded_intensity, encoded_elongation], axis=-1)
+
+    return np.stack([encoded_r, encoded_intensity], axis=-1)
 
 
 def decode_lidar_features(lidar_point_feature):
@@ -152,28 +158,41 @@ def decode_lidar_features(lidar_point_feature):
       [N, 3] float tensors that encodes lidar_point_feature.
     """
 
-    r, intensity, elongation = list(map(np.squeeze, np.split(lidar_point_feature, 3, axis=-1)))
+    feature_tuple = list(map(np.squeeze, np.split(lidar_point_feature, lidar_point_feature.shape[-1], axis=-1)))
+    r = feature_tuple[0]
+    intensity = feature_tuple[1]
+    # r, intensity, elongation = list(map(np.squeeze, np.split(lidar_point_feature, 3, axis=-1)))
 
     decoded_r = _decode_range(r)
     intensity = np.bitwise_and(intensity, int(0xFFFF))
     decoded_intensity = _decode_intensity(intensity.astype(np.uint16))
-    elongation = np.bitwise_and(elongation, int(0xFF))
-    decoded_elongation = _decode_elongation(elongation.astype(np.uint8))
+    if len(feature_tuple) > 2:
+        elongation = feature_tuple[2]
+        elongation = np.bitwise_and(elongation, int(0xFF))
+        decoded_elongation = _decode_elongation(elongation.astype(np.uint8))
 
-    return np.stack([decoded_r, decoded_intensity, decoded_elongation], axis=-1)
+        return np.stack([decoded_r, decoded_intensity, decoded_elongation], axis=-1)
+
+    return np.stack([decoded_r, decoded_intensity], axis=-1)
 
 
-def group_max(groups, data):
+def group_max(groups, data, keep='closest'):
     # this is only needed if groups is unsorted
-    if len(data.shape)>1:
+    if len(data.shape) > 1:
         order = np.lexsort((data[:, 0], groups))
     else:
         order = np.lexsort((data, groups))
     groups = groups[order]
     data = data[order]
     index = np.empty(len(groups), 'bool')
-    index[-1] = True
-    index[:-1] = groups[1:] != groups[:-1]
+    # farthest
+    if keep=='farthest':
+        index[-1] = True
+        index[:-1] = groups[1:] != groups[:-1]
+    elif keep=='closest':
+        # closest
+        index[0] = True
+        index[1:] = groups[1:] != groups[:-1]
     return groups[index], data[index]
 
 
@@ -211,9 +230,9 @@ def scatter_nd_with_pool_np(index, value, shape, pool_method=group_max):
 
 def build_range_image_from_point_cloud_np(points_frame,
                                           num_points,
-                                          extrinsic,
                                           inclination,
                                           range_image_size,
+                                          extrinsic=None,
                                           point_features=None,
                                           dtype=np.float64):
     """Build virtual range image from point cloud assuming uniform azimuth.
@@ -237,25 +256,38 @@ def build_range_image_from_point_cloud_np(points_frame,
     ri_ranges: [N] tensor. It represents the distance between a point and
         sensor frame origin of each point.
     """
+
+    def veh2laser(points_frame, extrinsic, dtype):
+
+        points_frame = points_frame.astype(dtype)
+
+        extrinsic = extrinsic.astype(dtype)
+        # [4, 4]
+        vehicle_to_laser = np.linalg.inv(extrinsic)
+        # [3, 3]
+        rotation = vehicle_to_laser[0:3, 0:3]
+        # [1, 3]
+        translation = np.expand_dims(vehicle_to_laser[0:3, 3], 0)
+
+        # Points in sensor frame
+        # [N, 3]
+        # trans(R^-1)
+        points = np.einsum('ij,kj->ik', points_frame, rotation) + translation
+
+        # [1,], within [-pi, pi]
+        az_correction = np.arctan2(extrinsic[1, 0], extrinsic[0, 0])
+        return points, az_correction
+
+    if extrinsic is not None:
+        points, az_correction = veh2laser(points_frame, extrinsic, dtype)
+    else:
+        points = points_frame
+        az_correction = 0
+
     points_frame_dtype = points_frame.dtype
-
-    points_frame = points_frame.astype(dtype)
     inclination = inclination.astype(dtype)
-    extrinsic = extrinsic.astype(dtype)
-
     height, width = range_image_size
 
-    # [4, 4]
-    vehicle_to_laser = np.linalg.inv(extrinsic)
-    # [3, 3]
-    rotation = vehicle_to_laser[0:3, 0:3]
-    # [1, 3]
-    translation = np.expand_dims(vehicle_to_laser[0:3, 3], 0)
-
-    # Points in sensor frame
-    # [N, 3]
-    # trans(R^-1)
-    points = np.einsum('ij,kj->ik', points_frame, rotation) + translation
     # [N]
     xy_norm = np.linalg.norm(points[..., 0:2], axis=-1)
     # [N]
@@ -267,12 +299,10 @@ def build_range_image_from_point_cloud_np(points_frame,
     # [N]
     point_ri_row_indices = np.argmin(point_inclination_diff, axis=-1)
 
-    # [1,], within [-pi, pi]
-    az_correction = np.arctan2(extrinsic[1, 0], extrinsic[0, 0])
     # [N], within [-pi, pi]
     # point_azimuth = np.arctan2(points[..., 1].astype(np.float64), points[..., 0].astype(np.float64)).astype(
     #     np.float64) + az_correction - 1e-9
-    point_azimuth = np.arctan2(points[..., 1], points[..., 0]) + az_correction
+    point_azimuth = np.arctan2(points[..., 1], points[..., 0]) + az_correction - 1e-6
 
     # solve the problem of np.float32 accuracy problem
     point_azimuth_gt_pi_mask = point_azimuth > np.pi
@@ -285,8 +315,12 @@ def build_range_image_from_point_cloud_np(points_frame,
                                                 np.pi) / (2.0 * np.pi) * width
     point_ri_col_indices = np.round(point_ri_col_indices).astype(np.int32)
 
-    assert (point_ri_col_indices >= 0).all()
-    assert (point_ri_col_indices < width).all()
+    try:
+        assert (point_ri_col_indices >= 0).all()
+        assert (point_ri_col_indices < width).all()
+    except:
+        import pudb
+        pudb.set_trace()
 
     # [N, 2]
     ri_indices = np.stack([point_ri_row_indices, point_ri_col_indices], -1)

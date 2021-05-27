@@ -3,7 +3,7 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
-    POINT_CLOUD_RANGE: [-79.5, -79.5, -5, 79.5, 79.5, 5]
+#    POINT_CLOUD_RANGE: [-79.5, -79.5, -5, 79.5, 79.5, 5]
 
     USE_DOUBLE_FLIP_TEST: &double_flip False
 
@@ -43,7 +43,7 @@ MODEL:
 
     MAP_TO_BEV:
       NAME: HeightCompression
-      NUM_BEV_FEATURES: 864
+      NUM_BEV_FEATURES: 576
 
     BACKBONE_2D:
       NAME: BaseBEVBackbone
@@ -102,12 +102,12 @@ MODEL:
             voxel_size: [0.2, 0.2]
             nms:
                 use_rotate_nms: True
-                use_multi_class_nms: False
+                use_multi_class_nms: True
                 use_circle_nms: False
-                use_max_pool_nms: False
+                use_max_pool_nms: True
                 nms_pre_max_size: 4096
-                nms_post_max_size: 500
-                nms_iou_threshold: 0.7
+                nms_post_max_size: 100
+                nms_iou_threshold: 0.01
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]

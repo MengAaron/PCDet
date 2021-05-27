@@ -31,6 +31,7 @@ class KittiDataset(DatasetTemplate):
 
         self.kitti_infos = []
         self.include_kitti_data(self.mode)
+        self.range_config = dataset_cfg.get('RANGE_CONFIG', False)
 
     def include_kitti_data(self, mode):
         if self.logger is not None:
@@ -52,7 +53,8 @@ class KittiDataset(DatasetTemplate):
 
     def set_split(self, split):
         super().__init__(
-            dataset_cfg=self.dataset_cfg, class_names=self.class_names, training=self.training, root_path=self.root_path, logger=self.logger
+            dataset_cfg=self.dataset_cfg, class_names=self.class_names, training=self.training,
+            root_path=self.root_path, logger=self.logger
         )
         self.split = split
         self.root_split_path = self.root_path / ('training' if self.split != 'test' else 'testing')
@@ -383,6 +385,7 @@ class KittiDataset(DatasetTemplate):
         input_dict = {
             'frame_id': sample_idx,
             'calib': calib,
+            'beam_inclination_range': (-0.43458698374658805, 0.03490658503988659)
         }
 
         if 'annos' in info:
@@ -421,7 +424,29 @@ class KittiDataset(DatasetTemplate):
         if "calib_matricies" in get_item_list:
             input_dict["trans_lidar_to_cam"], input_dict["trans_cam_to_img"] = kitti_utils.calib_to_matricies(calib)
 
-        data_dict = self.prepare_data(data_dict=input_dict)
+        if self.range_config:
+            # data_dict = input_dict
+            data_dict = self.prepare_data(data_dict=input_dict, process=False)
+        else:
+            data_dict = self.prepare_data(data_dict=input_dict)
+
+        if self.range_config:
+            from ..waymo import waymo_utils
+            data_dict.update({
+                'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [48, 512])
+            })
+            # waymo_utils.test(data_dict)
+            # import pudb
+            # pudb.set_trace()
+            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
+            points_feature_num = data_dict['points'].shape[1]
+            data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
+            data_dict = self.prepare_data(data_dict=data_dict, augment=False)
+            data_dict['points'] = data_dict['points'][:, :points_feature_num]
+            data_dict.pop('beam_inclination_range', None)
+            data_dict.pop('extrinsic', None)
+            data_dict.pop('range_image_shape', None)
+
 
         data_dict['image_shape'] = img_shape
         return data_dict

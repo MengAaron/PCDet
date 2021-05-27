@@ -270,26 +270,30 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
     num_points = points.shape[0]
     range_image_size = data_dict['range_image_shape']
     height, width = range_image_size
-    extrinsic = data_dict['extrinsic']
+    extrinsic = data_dict.get('extrinsic', None)
 
     inclination_min, inclination_max = data_dict['beam_inclination_range']
     # [H, ]
-    inclination = np.linspace(inclination_min, inclination_max, height)
+    inclination = np.linspace(inclination_max, inclination_min, height)
 
     range_images, ri_indices, ri_ranges = waymo_np.build_range_image_from_point_cloud_np(points_vehicle_frame,
-                                                                                         num_points, extrinsic,
+                                                                                         num_points,
                                                                                          inclination,
-                                                                                         range_image_size,
+                                                                                         range_image_size, extrinsic,
                                                                                          point_features)
     # clipping and rescaling
-    mean, std = range_images.mean(axis=(0, 1)), range_images.std(axis=(0, 1))
-    range_images = (range_images - mean) / std
+    # mean, std = range_images.mean(axis=(0, 1)), range_images.std(axis=(0, 1))
+    # range_images = (range_images - mean) / std
     range_images[..., 0] = np.clip(range_images[..., 0], 0.0, 79.5) / 79.5
     range_images[..., 1:] = np.clip(range_images[..., 1:], 0.0, 2.0) / 2.0
     # (H, W, C) -> (C, H, W)
     range_images = np.transpose(range_images, (2, 0, 1))
     data_dict['range_image'] = range_images
     data_dict['ri_indices'] = ri_indices
+    ri_xyz = np.zeros((height, width, 3))
+    ri_xyz[ri_indices[:, 0], ri_indices[:, 1]] = points_vehicle_frame
+    ri_xyz = ri_xyz.transpose((2, 0, 1))
+    data_dict['ri_xyz'] = ri_xyz
 
     if training:
         gt_boxes = data_dict['gt_boxes']
@@ -316,7 +320,7 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
 
         gt_points_vehicle_frame = points_vehicle_frame[select, :]
         range_mask, ri_mask_indices, ri_mask_ranges = waymo_np.build_range_image_from_point_cloud_np(
-            gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
+            gt_points_vehicle_frame, num_points, inclination, range_image_size, extrinsic)
         range_mask[range_mask > 0] = 1
         data_dict['range_mask'] = range_mask
         # data_dict['flag_of_pts'] = np.expand_dims(select, axis=1).astype(np.float)
@@ -346,16 +350,18 @@ def test(data_dict):
     num_points = points.shape[0]
     range_image_size = data_dict['range_image_shape']
     height, width = range_image_size
-    extrinsic = data_dict['extrinsic']
+    extrinsic = data_dict.get('extrinsic', None)
 
     inclination_min, inclination_max = data_dict['beam_inclination_range']
     # [H, ]
     inclination = np.linspace(inclination_max, inclination_min, height)
+    import pudb
+    pudb.set_trace()
 
     range_images, ri_indices, ri_ranges = waymo_np.build_range_image_from_point_cloud_np(points_vehicle_frame,
-                                                                                         num_points, extrinsic,
+                                                                                         num_points,
                                                                                          inclination,
-                                                                                         range_image_size,
+                                                                                         range_image_size, extrinsic,
                                                                                          point_features)
 
     points_vehicle_frame_tf = tf.convert_to_tensor(np.expand_dims(points_vehicle_frame, axis=0))
@@ -388,10 +394,9 @@ def test(data_dict):
     # flag_of_pts = point_indices.max(axis=0)
 
     gt_points_vehicle_frame = points_vehicle_frame[select, :]
-    import pudb
-    pudb.set_trace()
+
     range_mask, ri_mask_indices, ri_mask_ranges = waymo_np.build_range_image_from_point_cloud_np(
-        gt_points_vehicle_frame, num_points, extrinsic, inclination, range_image_size)
+        gt_points_vehicle_frame, num_points, inclination, range_image_size, extrinsic)
     range_mask[range_mask > 0] = 1
     gt_points_vehicle_frame_tf = tf.convert_to_tensor(np.expand_dims(gt_points_vehicle_frame, axis=0))
     range_mask_tf, ri_mask_indices_tf, ri_mask_ranges_tf = range_image_utils.build_range_image_from_point_cloud(
@@ -400,8 +405,6 @@ def test(data_dict):
     ri_mask_indices_tf = np.squeeze(ri_mask_indices_tf.numpy(), axis=0)
     ri_mask_ranges_tf = np.squeeze(ri_mask_ranges_tf.numpy(), axis=0)
     data_dict['range_mask'] = range_mask
-
-    return data_dict
 
 
 def plot_pointcloud(pointcloud, vals='height'):
@@ -478,12 +481,33 @@ def plot_pointcloud_with_gt_boxes(pointcloud, gt_boxes):
     mlab.show()
 
 
-def plot_rangeimage(rangeimage):
-    import PIL.Image as image
+def plot_rangeimage(rangeimage, theta=1, conf='m'):
+    """
+
+    Args:
+        rangeimage:
+        theta: the angle range for front view
+
+    Returns:
+
+    """
+
     if len(rangeimage.shape) > 2:
         rangeimage = rangeimage[..., 0]
-    rangeimage = image.fromarray(rangeimage / rangeimage.max() * 255)
-    rangeimage.show()
+    height, width = rangeimage.shape
+    left = int(width * (0.5 - theta / 2))
+    right = int(width * (0.5 + theta / 2))
+    rangeimage = rangeimage[:, left:right]
+    rangeimage = rangeimage / rangeimage.max() * 255
+    if conf == 'p':
+        import PIL.Image as image
+        rangeimage = image.fromarray(rangeimage)
+        rangeimage.show()
+    elif conf =='m':
+        import matplotlib.pyplot as plt
+        plt.axis('off')
+        plt.imshow(rangeimage, cmap='jet')
+        plt.show()
 
 
 def boxes_to_corners_3d(boxes3d):
@@ -800,3 +824,73 @@ def _points_in_convex_polygon_3d_jit(
                     ret[i, j] = False
                     break
     return ret
+
+
+def plot_bev(pointcloud, res=(0.1, 0.1, 0.3), pc_range=(-80, -80, -10.0, 80, 80, 10.0)):
+    print(pointcloud.shape)
+    print(type(pointcloud))
+    x = pointcloud[:, 0]  # x position of point
+    y = pointcloud[:, 1]  # y position of point
+    z = pointcloud[:, 2]  # z position of point
+    r = pointcloud[:, 3]
+    xmin = max(np.amin(x, axis=0), pc_range[0])
+    xmax = min(np.amax(x, axis=0), pc_range[3])
+
+    ymin = max(np.amin(y, axis=0), pc_range[1])
+    ymax = min(np.amax(y, axis=0), pc_range[4])
+
+    zmin = max(np.amin(z, axis=0), pc_range[2])
+    zmax = min(np.amax(z, axis=0), pc_range[5])
+    print(xmin, xmax, ymin, ymax, zmin, zmax)
+    d = np.sqrt(x ** 2 + y ** 2)  # Map Distance from sensor
+
+    # INITIALIZE EMPTY ARRAY - of the dimensions we want
+    x_dim = int((xmax - xmin) / res[0])
+    y_dim = int((ymax - ymin) / res[1])
+    z_dim = int((zmax - zmin) / res[2])
+    top = np.zeros([y_dim + 1, x_dim + 1, z_dim + 1], dtype=np.float32)
+
+    # FILTER - To return only indices of points within desired cube
+    # Three filters for: Front-to-back, side-to-side, and height ranges
+    # Note left side is positive y axis in LIDAR coordinates
+    f_filt = np.logical_and(
+        (x > pc_range[0]), (x < pc_range[3]))
+    s_filt = np.logical_and(
+        (y > pc_range[1]), (y < pc_range[4]))
+    filt = np.logical_and(f_filt, s_filt)
+
+    for i, height in enumerate(np.arange(zmin, zmax, res[2])):
+        z_filt = np.logical_and((z >= height),
+                                (z < height + res[2]))
+        zfilter = np.logical_and(filt, z_filt)
+        indices = np.argwhere(zfilter).flatten()
+
+        # KEEPERS
+        xi_points = x[indices]
+        yi_points = y[indices]
+        zi_points = z[indices]
+        ri = r[indices]
+        di = d[indices]
+
+        # CONVERT TO PIXEL POSITION VALUES - Based on resolution
+        x_img = (-yi_points / res[1]).astype(np.int32)  # x axis is -y in LIDAR
+        y_img = (-xi_points / res[0]).astype(np.int32)  # y axis is -x in LIDAR
+
+        # SHIFT PIXELS TO HAVE MINIMUM BE (0,0)
+        # floor & ceil used to prevent anything being rounded to below 0 after
+        # shift
+        x_img -= int(np.floor(ymin / res[1]))
+        y_img += int(np.floor(xmin / res[0]))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        # pixel_values = zi_points - zmin
+        pixel_values = ri
+
+        # FILL PIXEL VALUES IN IMAGE ARRAY
+        top[y_img, x_img, i] = pixel_values
+
+        # max_intensity = np.max(prs[idx])
+        # top[y_img, x_img, z_dim] = ref_i
+
+    top = (top / np.max(top) * 255).astype(np.uint8)
+    return top

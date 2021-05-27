@@ -2,7 +2,7 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
-    POINT_CLOUD_RANGE: [ -80, -80, -2, 80, 80, 4 ]
+#    POINT_CLOUD_RANGE: [ -80, -80, -2, 80, 80, 4 ]
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True
@@ -22,7 +22,7 @@ DATA_CONFIG:
           }
 
 MODEL:
-    NAME: CenterPoint
+    NAME: RSN
 
     VFE:
         NAME: MeanVFE
@@ -61,7 +61,7 @@ MODEL:
         PARAMETERS:
           share_conv_channel: 64 # may not correct
           init_bias: -2.19
-          common_heads: {'reg': [2,2], 'hei': [1,2], 'dim': [3,2], rot: [2,2]} # {cat: [classes, num_conv]}
+          common_heads: {'reg': [2,2], 'height': [1,2], 'dim': [3,2], rot: [2,2]} # {cat: [classes, num_conv]}
 
         LOSS_CONFIG:
           code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]

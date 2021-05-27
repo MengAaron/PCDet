@@ -149,9 +149,9 @@ def main():
             V.draw_scenes(
                 points=data_dict['points'][:, 1:4],
                 # gt_boxes=data_dict.get('gt_boxes', None)[0],
-                ref_boxes=pred_dicts[0]['pred_boxes'][mask2][:len(data_dict.get('gt_boxes', None)[0])],
-                ref_scores=pred_dicts[0]['pred_scores'][mask2][:len(data_dict.get('gt_boxes', None)[0])],
-                ref_labels=pred_dicts[0]['pred_labels'][mask2][:len(data_dict.get('gt_boxes', None)[0])]
+                ref_boxes=pred_dicts[0]['pred_boxes'][mask2],
+                ref_scores=pred_dicts[0]['pred_scores'][mask2],
+                ref_labels=pred_dicts[0]['pred_labels'][mask2]
             )
             mlab.show(stop=True)
 

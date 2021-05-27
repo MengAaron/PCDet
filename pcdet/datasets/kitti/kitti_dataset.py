@@ -37,6 +37,8 @@ class KittiDataset(DatasetTemplate):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
         kitti_infos = []
+        import pudb
+        pudb.set_trace()
 
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path

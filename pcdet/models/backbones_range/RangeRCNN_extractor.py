@@ -78,16 +78,16 @@ class RangeRCNNBackbone(nn.Module):
     def __init__(self, in_channels, **kwargs):
         super(RangeRCNNBackbone, self).__init__()
         # self.Down0 = DDBlock(in_channels, out_channels=32, stride=1)
-        self.Down1 = DDBlock(in_channels, 64, stride=1)
-        self.Down2 = DDBlock(64, 128)
-        self.Down3 = DDBlock(128, 128)
+        self.Down1 = DDBlock(in_channels, 32, stride=1)
+        self.Down2 = DDBlock(32, 64)
+        self.Down3 = DDBlock(64, 128)
         self.Down4 = DDBlock(128, 256)
         # self.Down5 = DDBlock(256, 256)
         self.Up = UpCat()
         # self.Up4 = DRBlock(512, 128)
         self.Up3 = DRBlock(384, 128)
-        self.Up2 = DRBlock(256, 64)
-        self.Up1 = DRBlock(128, 64)
+        self.Up2 = DRBlock(192, 64)
+        self.Up1 = DRBlock(96, 32)
         self.out_channels = self.Up1.out_channels
 
     def forward(self, batch_dict):

@@ -23,7 +23,7 @@ class DRBlock(nn.Module):
         #     nn.BatchNorm2d(out_channels),
         #     nn.ReLU(inplace=True))
         self.conv_fuse = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False),
+            nn.Conv2d(out_channels * 2, out_channels, kernel_size=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
 

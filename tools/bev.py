@@ -189,8 +189,8 @@ def main():
             mask2 = pred_dicts[0]['pred_boxes'][:, 4] / pred_dicts[0]['pred_boxes'][:, 3]
             mask2 = (mask2 < 20) & (mask2 > 0.05)
             mask2 = mask2 & mask
-            mask_score = pred_dicts[0]['pred_scores'] > 0.7
-            mask2 = mask2 & mask_score
+            # mask_score = pred_dicts[0]['pred_scores'] > 0.7
+            # mask2 = mask2 & mask_score
 
             points = data_dict['points'][:, 1:4].cpu().numpy()
             # import pudb
@@ -233,7 +233,7 @@ def main():
             fig, ax = plt.subplots(figsize=(10, 10))
             ax.imshow(top, aspect='equal', cmap='gray')
 
-            # draw_boxes(ax, data_dict.get('gt_boxes', None)[0].cpu().numpy(), pc_range, color='blue')
+            draw_boxes(ax, data_dict.get('gt_boxes', None)[0].cpu().numpy(), pc_range, color='blue')
             # import pudb
             # pudb.set_trace()
             draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2].cpu().numpy(), pc_range, color='red')

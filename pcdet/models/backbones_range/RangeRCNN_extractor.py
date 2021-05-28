@@ -18,12 +18,12 @@ class DRBlock(nn.Module):
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=2, bias=False, dilation=2),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=3, bias=False, dilation=3),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True))
+        # self.conv2 = nn.Sequential(
+        #     nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=3, bias=False, dilation=3),
+        #     nn.BatchNorm2d(out_channels),
+        #     nn.ReLU(inplace=True))
         self.conv_fuse = nn.Sequential(
-            nn.Conv2d(3 * out_channels, out_channels, kernel_size=1, bias=False),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
 
@@ -37,8 +37,9 @@ class DRBlock(nn.Module):
     def forward(self, x):
         conv0 = self.conv0(x)
         conv1 = self.conv1(conv0)
-        conv2 = self.conv2(conv1)
-        conv_fuse = torch.cat([conv0, conv1, conv2], dim=1)
+        # conv2 = self.conv2(conv1)
+        # conv_fuse = torch.cat([conv0, conv1, conv2], dim=1)
+        conv_fuse = torch.cat([conv0, conv1], dim=1)
         output = self.conv_fuse(conv_fuse)
 
         return nn.ReLU(inplace=True)(output + self.shortcut(x))

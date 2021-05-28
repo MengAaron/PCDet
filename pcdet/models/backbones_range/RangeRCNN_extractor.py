@@ -72,7 +72,7 @@ class RangeRCNNBackbone(nn.Module):
         self.Down3 = DDBlock(128, 128)
         self.Down4 = DDBlock(128, 256)
         self.Down5 = DDBlock(256, 256)
-        self.Up = nn.UpsamplingBilinear2d()
+        self.Up = nn.UpsamplingBilinear2d(scale_factor=2)
         self.Up4 = DRBlock(512, 128)
         self.Up3 = DRBlock(256, 128)
         self.Up2 = DRBlock(256, 64)

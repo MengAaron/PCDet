@@ -75,6 +75,7 @@ class RangeRCNNBackbone(nn.Module):
         self.Up3 = DRBlock(256, 128)
         self.Up2 = DRBlock(256, 64)
         self.Up1 = DRBlock(128, 64)
+        self.out_channels = self.Up1.out_channels
 
     def forward(self, batch_dict):
         pudb.set_trace()
@@ -93,5 +94,9 @@ class RangeRCNNBackbone(nn.Module):
         up2 = self.Up4(up2)
         up1 = torch.cat([nn.UpsamplingBilinear2d(up2),conv1],dim=1)
         up1 = self.Up4(up1)
+        batch_dict.pop('range_image', None)
+        batch_dict['range_features'] = up1
+        return batch_dict
 
-        return up1
+    def get_output_feature_dim(self):
+        return self.out_channels

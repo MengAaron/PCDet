@@ -9,6 +9,7 @@ class DRBlock(nn.Module):
     # Dilated Residual Block
     def __init__(self, in_channels, out_channels):
         super(DRBlock, self).__init__()
+        self.out_channels = out_channels
         # residual function
         self.conv0 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),

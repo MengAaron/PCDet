@@ -1,5 +1,4 @@
 # Range RCNN feature extractor
-import pudb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -91,6 +90,7 @@ class RangeRCNNBackbone(nn.Module):
         self.out_channels = self.Up1.out_channels
 
     def forward(self, batch_dict):
+        import pudb
         pudb.set_trace()
         x = batch_dict['range_image']
         conv0 = self.Down0(x)

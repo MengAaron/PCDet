@@ -109,6 +109,8 @@ class UNet(nn.Module):
         self.out_channels = self.Up1.out_channels * 2
 
     def forward(self, batch_dict):
+        import pudb
+        pudb.set_trace()
         x = batch_dict['range_image']
         conv1 = self.Down1(x)
         conv2 = self.Down2(conv1)

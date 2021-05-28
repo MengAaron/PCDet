@@ -52,7 +52,7 @@ class DDBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
             nn.BatchNorm2d(out_channels)
         )
-        self.DRBlock = DRBlock(in_channels, out_channels)
+        self.DRBlock = DRBlock(out_channels, out_channels)
         self.post = nn.Sequential(
             nn.Dropout(), nn.MaxPool2d(stride))
 

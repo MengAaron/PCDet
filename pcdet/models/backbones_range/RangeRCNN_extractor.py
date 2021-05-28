@@ -62,6 +62,17 @@ class DDBlock(nn.Module):
         x = self.post(x)
         return x
 
+class UpCat(nn.Module):
+    def __init__(self):
+        super(UpCat, self).__init__()
+
+    def forward(self, inputs1, inputs2):
+        outputs1 = inputs1
+        outputs2 = F.interpolate(inputs2, size=[outputs1.size(2), outputs1.size(3)], mode='bilinear',
+                                 align_corners=True)
+
+        return torch.cat([outputs1, outputs2], 1)
+
 
 class RangeRCNNBackbone(nn.Module):
     def __init__(self, in_channels, **kwargs):
@@ -72,7 +83,7 @@ class RangeRCNNBackbone(nn.Module):
         self.Down3 = DDBlock(128, 128)
         self.Down4 = DDBlock(128, 256)
         self.Down5 = DDBlock(256, 256)
-        self.Up = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.Up = UpCat()
         self.Up4 = DRBlock(512, 128)
         self.Up3 = DRBlock(256, 128)
         self.Up2 = DRBlock(256, 64)
@@ -88,14 +99,14 @@ class RangeRCNNBackbone(nn.Module):
         conv3 = self.Down3(conv2)
         conv4 = self.Down4(conv3)
         conv5 = self.Down5(conv4)
-        up4 = torch.cat([self.Up(conv5), conv4], dim=1)
+        up4 = self.Up(conv4, conv5)
         up4 = self.Up4(up4)
-        up3 = torch.cat([self.Up(up4), conv3], dim=1)
-        up3 = self.Up4(up3)
-        up2 = torch.cat([self.Up(up3), conv2], dim=1)
-        up2 = self.Up4(up2)
-        up1 = torch.cat([self.Up(up2), conv1], dim=1)
-        up1 = self.Up4(up1)
+        up3 = self.Up(conv3, up4)
+        up3 = self.Up3(up3)
+        up2 = self.Up(conv2, up3)
+        up2 = self.Up2(up2)
+        up1 = self.Up(conv1, up2)
+        up1 = self.Up1(up1)
         batch_dict.pop('range_image', None)
         batch_dict['range_features'] = up1
         return batch_dict

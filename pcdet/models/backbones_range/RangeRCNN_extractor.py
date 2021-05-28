@@ -12,15 +12,15 @@ class DRBlock(nn.Module):
         self.out_channels = out_channels
         # residual function
         self.conv0 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding='SAME', bias=False),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
         self.conv1 = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding='SAME', bias=False, dilation=2),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=2, bias=False, dilation=2),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
         self.conv2 = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding='SAME', bias=False, dilation=3),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=3, bias=False, dilation=3),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
         self.conv_fuse = nn.Sequential(

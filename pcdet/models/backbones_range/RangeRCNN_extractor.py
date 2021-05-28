@@ -54,7 +54,7 @@ class DDBlock(nn.Module):
         )
         self.DRBlock = DRBlock(out_channels, out_channels)
         self.post = nn.Sequential(
-            nn.Dropout(), nn.MaxPool2d(stride))
+            nn.Dropout(inplace=True), nn.MaxPool2d(stride))
 
     def forward(self, x):
         x = self.conv(x)

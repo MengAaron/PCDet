@@ -176,6 +176,8 @@ def main():
     model.eval()
     pc_range = cfg.DATA_CONFIG.POINT_CLOUD_RANGE
     res = 0.1
+    import pudb
+    pudb.set_trace()
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
             logger.info(f'Visualized sample index: \t{idx + 1}')
@@ -234,8 +236,8 @@ def main():
             ax.imshow(top, aspect='equal', cmap='gray')
 
             draw_boxes(ax, data_dict.get('gt_boxes', None)[0].cpu().numpy(), pc_range, color='blue')
-            import pudb
-            pudb.set_trace()
+            # import pudb
+            # pudb.set_trace()
             draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2].cpu().numpy(), pc_range, color='red')
             plt.axis('off')
             plt.tight_layout()

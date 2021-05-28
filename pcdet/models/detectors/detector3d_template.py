@@ -204,7 +204,7 @@ class Detector3DTemplate(nn.Module):
             return None, model_info_dict
         point_head_module = roi_heads.__all__[self.model_cfg.ROI_HEAD.NAME](
             model_cfg=self.model_cfg.ROI_HEAD,
-            input_channels=model_info_dict['num_point_features'],
+            input_channels=model_info_dict['num_rawpoint_features'],
             num_class=self.num_class if not self.model_cfg.ROI_HEAD.CLASS_AGNOSTIC else 1,
         )
 

@@ -499,7 +499,7 @@ def plot_rangeimage(rangeimage, theta=1, conf='m'):
     right = int(width * (0.5 + theta / 2))
     rangeimage = rangeimage[:, left:right]
     rangeimage = rangeimage / rangeimage.max() * 255
-    rangeimage[rangeimage == 0] = 1000
+    # rangeimage[rangeimage == 0] = 1000
     if conf == 'p':
         import PIL.Image as image
         rangeimage = image.fromarray(rangeimage)
@@ -507,8 +507,8 @@ def plot_rangeimage(rangeimage, theta=1, conf='m'):
     elif conf =='m':
         import matplotlib.pyplot as plt
         plt.axis('off')
-        # plt.imshow(rangeimage, cmap='jet')
-        plt.imshow(rangeimage, cmap='terrain')
+        plt.imshow(rangeimage, cmap='jet')
+        # plt.imshow(rangeimage, cmap='terrain')
         plt.show()
 
 

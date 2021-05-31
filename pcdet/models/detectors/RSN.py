@@ -11,8 +11,8 @@ class RangeTemplate(Detector3DTemplate):
         self.iter = 0
 
     def forward(self, batch_dict):
-        # import pudb
-        # pudb.set_trace()
+        import pudb
+        pudb.set_trace()
         for i, cur_module in enumerate(self.module_list):
             self.iter += 1
             tic = time.time()

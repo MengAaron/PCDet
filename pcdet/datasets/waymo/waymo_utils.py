@@ -506,7 +506,8 @@ def plot_rangeimage(rangeimage, theta=1, conf='m'):
     elif conf =='m':
         import matplotlib.pyplot as plt
         plt.axis('off')
-        plt.imshow(rangeimage, cmap='jet')
+        # plt.imshow(rangeimage, cmap='jet')
+        plt.imshow(rangeimage, cmap='terrain')
         plt.show()
 
 

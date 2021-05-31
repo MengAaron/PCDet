@@ -11,8 +11,8 @@ class RangeTemplate(Detector3DTemplate):
         self.iter = 0
 
     def forward(self, batch_dict):
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         for i, cur_module in enumerate(self.module_list):
             self.iter += 1
             tic = time.time()
@@ -32,7 +32,7 @@ class RangeTemplate(Detector3DTemplate):
             pred_dicts, recall_dicts = self.post_processing(batch_dict)
             toc = time.time()
             self.time[-1] += toc - tic
-            print(self.time / self.iter)
+            # print(self.time / self.iter)
             return pred_dicts, recall_dicts
 
     def get_training_loss(self):

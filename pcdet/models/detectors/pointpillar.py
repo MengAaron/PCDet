@@ -34,8 +34,8 @@ class PointPillar(Detector3DTemplate):
         return loss, tb_dict, disp_dict
 
 class PointPillarRCNN(PointPillar):
-    def __init__(self):
-        super(PointPillarRCNN, self).__init__()
+    def __init__(self, model_cfg, num_class, dataset):
+        super(PointPillarRCNN, self).__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
 
     def get_training_loss(self):
         loss_config = self.model_cfg.get('LOSS_CONFIG', None)

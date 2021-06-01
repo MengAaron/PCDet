@@ -110,6 +110,7 @@ MODEL:
     ROI_HEAD:
         NAME: RRCNNHead
         CLASS_AGNOSTIC: True
+        USE_XYZ: True
 
         SHARED_FC: [ 256, 256, 256 ]
         CLS_FC: [ 256, 256 ]

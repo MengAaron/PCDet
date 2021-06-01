@@ -2,6 +2,7 @@ import numpy as np
 
 from ....datasets.waymo.waymo_utils import plot_pointcloud, plot_pointcloud_with_gt_boxes
 import torch
+global_result = np.zeros((1, 11, 5))
 
 
 def plot_pc(this_points):
@@ -96,7 +97,8 @@ def analyze(batch_dict):
         this_points_mask = torch.gather(this_range_mask, dim=0, index=this_ri_indexes).bool()
         points_num, recall, precision, f1 = eval(this_points_mask, this_flag_of_pts)
         batch_result[batch_idx,10] = 1, points_num, recall, precision, f1
-
+    global global_result
+    global_result = np.concatenate([global_result, batch_result])
     print("threshold    points_num    recall    precision    f1")
     for i in range(11):
-        print("%9.2f    %8.0f    %6.2f    %9.2f    %5.2f" % tuple(batch_result.mean(axis=0)[i].tolist()))
+        print("%9.2f    %8.0f    %6.2f    %9.2f    %5.2f" % tuple(global_result[1:].mean(axis=0)[i].tolist()))

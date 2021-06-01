@@ -26,6 +26,7 @@ DATA_CONFIG:
         }
     RANGE_CONFIG:
       RANGE_IMAGE_SHAPE: [64, 2650]
+      USE_XYZ: True
 
 
 

@@ -23,7 +23,7 @@ class RRCNNHead(RoIHeadTemplate):
         #     block(64, c0, 3, padding=1, indice_key='rcnn_subm1_1'),
         # )
         self.conv_rpn = spconv.SparseSequential(
-            block(input_channels, 64, 3, padding=1, indice_key='rcnn_subm2'),
+            block(input_channels - 3, 64, 3, padding=1, indice_key='rcnn_subm2'),
             block(64, c0, 3, padding=1, indice_key='rcnn_subm1_2'),
         )
 
@@ -119,7 +119,7 @@ class RRCNNHead(RoIHeadTemplate):
         batch_size = batch_dict['batch_size']
         batch_idx = batch_dict['points'][:, 0]
         point_coords = batch_dict['points'][:, 1:4]
-        point_features = batch_dict['points'][:, 1:]
+        point_features = batch_dict['points'][:, 4:]
         # part_features = torch.cat((
         #     batch_dict['point_part_offset'] if not self.model_cfg.get('DISABLE_PART', False) else point_coords,
         #     batch_dict['point_cls_scores'].view(-1, 1).detach()

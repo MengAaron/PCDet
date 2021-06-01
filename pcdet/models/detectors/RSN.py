@@ -32,7 +32,7 @@ class RangeTemplate(Detector3DTemplate):
             pred_dicts, recall_dicts = self.post_processing(batch_dict)
             toc = time.time()
             self.time[-1] += toc - tic
-            print(self.time / self.iter)
+            # print(self.time / self.iter)
             return pred_dicts, recall_dicts
 
     def get_training_loss(self):

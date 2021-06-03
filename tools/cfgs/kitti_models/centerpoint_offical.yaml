@@ -1,4 +1,4 @@
-CLASS_NAMES: ['Vehicle','Pedestrian','Cyclist']
+CLASS_NAMES: ['Car','Pedestrian','Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
@@ -56,7 +56,7 @@ MODEL:
         NO_LOG: False
         TASKS: &tasks_head
           - num_class: 1
-            class_names: ['Vehicle']
+            class_names: ['Car']
           - num_class: 1
             class_names: ['Pedestrian']
           - num_class: 1
@@ -91,7 +91,7 @@ MODEL:
             MAX_OBJS: 500
             min_radius: 2
             mapping: {
-                'Vehicle' :1,
+                'Car' :1,
                 'Pedestrian': 2,
                 'Cyclist': 3
             }

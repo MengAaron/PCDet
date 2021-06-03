@@ -27,7 +27,7 @@ def multi_apply(func, *args, **kwargs):
 
 class CenterHead(nn.Module):
     def __init__(self, model_cfg, input_channels, num_class, class_names, grid_size, point_cloud_range,
-                 predict_boxes_when_training=True):
+                 predict_boxes_when_training=True,**kwargs):
         super().__init__()
         self.model_cfg = model_cfg
         self.num_class = num_class

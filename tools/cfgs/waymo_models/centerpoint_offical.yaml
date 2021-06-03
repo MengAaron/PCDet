@@ -6,6 +6,11 @@ DATA_CONFIG:
     USE_DOUBLE_FLIP_TEST: &double_flip False
     POINT_CLOUD_RANGE: &pc_range [-79.5, -79.5, -5, 79.5, 79.5, 5]
 
+    SAMPLED_INTERVAL: {
+        'train': 5,
+        'test': 5
+    }
+
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True

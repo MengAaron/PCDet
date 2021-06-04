@@ -142,9 +142,9 @@ class UNet2(nn.Module):
         self.Up3 = Up(2, in_channels=128, out_channels=64)
         self.Up2 = Up(2, in_channels=128, out_channels=32)
         self.Up1 = Up(1, in_channels=64, out_channels=16)
-        self.Up0 = Up(1, in_channels=32, out_channels=16)
+        self.Up0 = Up(1, in_channels=32, out_channels=8)
         self.upcat = UpCat()
-        self.out_channels = self.Up1.out_channels
+        self.out_channels = self.Up0.out_channels
 
     def forward(self, batch_dict):
         # import pudb

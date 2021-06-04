@@ -97,7 +97,7 @@ MODEL:
             }
 
     PFE:
-        NAME: VoxelSetAbstraction
+        NAME: NeighborVoxelSetAbstraction
         POINT_SOURCE: raw_points
         NUM_KEYPOINTS: 4096
         NUM_OUTPUT_FEATURES: 128

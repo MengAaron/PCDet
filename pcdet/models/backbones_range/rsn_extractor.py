@@ -130,29 +130,18 @@ class UNet(nn.Module):
         return self.out_channels
 
 
-class UpCat(nn.Module):
-    def __init__(self):
-        super(UpCat, self).__init__()
-
-    def forward(self, inputs1, inputs2):
-        outputs1 = inputs1
-        outputs2 = F.interpolate(inputs2, size=[outputs1.size(2), outputs1.size(3)], mode='bilinear',
-                                 align_corners=True)
-
-        return torch.cat([outputs1, outputs2], 1)
-
 
 class UNet2(nn.Module):
     def __init__(self, in_channels, **kwargs):
         super().__init__()
 
         self.Down1 = Down(1, in_channels=in_channels, out_channels=16)
-        self.Down2 = Down(2, in_channels=16, out_channels=64)
-        self.Down3 = Down(2, in_channels=64, out_channels=128)
-        self.Down4 = Down(2, in_channels=128, out_channels=128)
-        self.Up3 = Up(2, in_channels=128, out_channels=128)
-        self.Up2 = Up(2, in_channels=256, out_channels=64)
-        self.Up1 = Up(1, in_channels=128, out_channels=16)
+        self.Down2 = Down(2, in_channels=16, out_channels=32)
+        self.Down3 = Down(2, in_channels=32, out_channels=64)
+        self.Down4 = Down(2, in_channels=64, out_channels=128)
+        self.Up3 = Up(2, in_channels=128, out_channels=64)
+        self.Up2 = Up(2, in_channels=128, out_channels=32)
+        self.Up1 = Up(1, in_channels=64, out_channels=16)
         self.Up0 = Up(1, in_channels=32, out_channels=16)
         self.upcat = UpCat()
         self.out_channels = self.Up1.out_channels

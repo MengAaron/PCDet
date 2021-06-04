@@ -205,7 +205,7 @@ class Detector3DTemplate(nn.Module):
             return None, model_info_dict
         input_channels = model_info_dict['num_rawpoint_features'] if self.model_cfg.ROI_HEAD.get('USE_RAW_POINT',
                                                                                                  False) else \
-                         model_info_dict['num_point_features'],
+                         model_info_dict['num_point_features']
         point_head_module = roi_heads.__all__[self.model_cfg.ROI_HEAD.NAME](
             model_cfg=self.model_cfg.ROI_HEAD,
             input_channels=input_channels,

@@ -107,26 +107,31 @@ MODEL:
         SA_LAYER:
             raw_points:
                 MLPS: [[16, 16], [16, 16]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.4, 0.8]
                 NSAMPLE: [16, 16]
             x_conv1:
                 DOWNSAMPLE_FACTOR: 1
                 MLPS: [[16, 16], [16, 16]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.4, 0.8]
                 NSAMPLE: [16, 16]
             x_conv2:
                 DOWNSAMPLE_FACTOR: 2
                 MLPS: [[32, 32], [32, 32]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.8, 1.2]
                 NSAMPLE: [16, 32]
             x_conv3:
                 DOWNSAMPLE_FACTOR: 4
                 MLPS: [[64, 64], [64, 64]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [1.2, 2.4]
                 NSAMPLE: [16, 32]
             x_conv4:
                 DOWNSAMPLE_FACTOR: 8
                 MLPS: [[64, 64], [64, 64]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [2.4, 4.8]
                 NSAMPLE: [16, 32]
 

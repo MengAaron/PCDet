@@ -119,6 +119,7 @@ MODEL:
 
     ROI_HEAD:
         NAME: RRCNNHead
+        USE_RAW_POINT: True
         CLASS_AGNOSTIC: True
 
         SHARED_FC: [ 256, 256, 256 ]
@@ -199,7 +200,7 @@ MODEL:
 
 OPTIMIZATION:
     BATCH_SIZE_PER_GPU: 4
-    NUM_EPOCHS: 31
+    NUM_EPOCHS: 30
 
     OPTIMIZER: adam_onecycle
     LR: 0.01

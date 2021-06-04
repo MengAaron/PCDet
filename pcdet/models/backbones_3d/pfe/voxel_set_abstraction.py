@@ -397,15 +397,16 @@ class NeighborVoxelSetAbstraction(nn.Module):
             for bs_idx in range(batch_size):
                 xyz_batch_cnt[bs_idx] = (raw_points[:, 0] == bs_idx).sum()
             point_features = raw_points[:, 4:].contiguous() if raw_points.shape[1] > 4 else None
+            point_features_list.append(point_features.view(batch_size, num_keypoints, -1))
 
-            pooled_points, pooled_features = self.SA_rawpoints(
-                xyz=xyz.contiguous(),
-                xyz_batch_cnt=xyz_batch_cnt,
-                new_xyz=new_xyz,
-                new_xyz_batch_cnt=new_xyz_batch_cnt,
-                features=point_features,
-            )
-            point_features_list.append(pooled_features.view(batch_size, num_keypoints, -1))
+            # pooled_points, pooled_features = self.SA_rawpoints(
+            #     xyz=xyz.contiguous(),
+            #     xyz_batch_cnt=xyz_batch_cnt,
+            #     new_xyz=new_xyz,
+            #     new_xyz_batch_cnt=new_xyz_batch_cnt,
+            #     features=point_features,
+            # )
+            # point_features_list.append(pooled_features.view(batch_size, num_keypoints, -1))
 
         for k, src_name in enumerate(self.SA_layer_names):
             cur_coords = batch_dict['multi_scale_3d_features'][src_name].indices

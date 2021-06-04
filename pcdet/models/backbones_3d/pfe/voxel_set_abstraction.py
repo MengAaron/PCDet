@@ -279,18 +279,19 @@ class NeighborVoxelSetAbstraction(nn.Module):
             c_in += c_bev
 
         if 'raw_points' in self.model_cfg.FEATURES_SOURCE:
-            mlps = SA_cfg['raw_points'].MLPS
-            for k in range(len(mlps)):
-                mlps[k] = [num_rawpoint_features - 3] + mlps[k]
+            # mlps = SA_cfg['raw_points'].MLPS
+            # for k in range(len(mlps)):
+            #     mlps[k] = [num_rawpoint_features - 3] + mlps[k]
 
-            self.SA_rawpoints = pointnet2_stack_modules.StackSAModuleMSG(
-                radii=SA_cfg['raw_points'].POOL_RADIUS,
-                nsamples=SA_cfg['raw_points'].NSAMPLE,
-                mlps=mlps,
-                use_xyz=True,
-                pool_method='max_pool'
-            )
-            c_in += sum([x[-1] for x in mlps])
+            # self.SA_rawpoints = pointnet2_stack_modules.StackSAModuleMSG(
+            #     radii=SA_cfg['raw_points'].POOL_RADIUS,
+            #     nsamples=SA_cfg['raw_points'].NSAMPLE,
+            #     mlps=mlps,
+            #     use_xyz=True,
+            #     pool_method='max_pool'
+            # )
+            # c_in += sum([x[-1] for x in mlps])
+            c_in += num_rawpoint_features
 
         self.vsa_point_feature_fusion = nn.Sequential(
             nn.Linear(c_in, self.model_cfg.NUM_OUTPUT_FEATURES, bias=False),
@@ -440,6 +441,7 @@ class NeighborVoxelSetAbstraction(nn.Module):
                 new_xyz=new_xyz,
                 new_xyz_batch_cnt=new_xyz_batch_cnt,
                 features=batch_dict['multi_scale_3d_features'][src_name].features.contiguous(),
+                new_coords=cur_roi_grid_coords.contiguous().view(-1, 4),
             )
             point_features_list.append(pooled_features.view(batch_size, num_keypoints, -1))
 

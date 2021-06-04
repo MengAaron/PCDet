@@ -123,6 +123,7 @@ MODEL:
 
     ROI_HEAD:
         NAME: RRCNNHead
+        USE_RAW_POINT: True
         CLASS_AGNOSTIC: True
         USE_XYZ: False
 

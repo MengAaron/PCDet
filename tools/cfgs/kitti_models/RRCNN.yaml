@@ -126,6 +126,7 @@ MODEL:
               }
     ROI_HEAD:
         NAME: RRCNNHead
+        USE_RAW_POINT: True
         CLASS_AGNOSTIC: True
 
         SHARED_FC: [ 256, 256, 256 ]

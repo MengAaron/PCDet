@@ -203,10 +203,12 @@ class Detector3DTemplate(nn.Module):
         # pudb.set_trace()
         if self.model_cfg.get('ROI_HEAD', None) is None:
             return None, model_info_dict
+        input_channels = model_info_dict['num_rawpoint_features'] if self.model_cfg.ROI_HEAD.get('USE_RAW_POINT',
+                                                                                                 False) else \
+                         model_info_dict['num_point_features'],
         point_head_module = roi_heads.__all__[self.model_cfg.ROI_HEAD.NAME](
             model_cfg=self.model_cfg.ROI_HEAD,
-            input_channels=model_info_dict['num_rawpoint_features'] if self.model_cfg.ROI_HEAD.get('USE_RAW_POINT', False)
-                else model_info_dict['num_point_features'],
+            input_channels=input_channels,
             point_cloud_range=model_info_dict['point_cloud_range'],
             voxel_size=model_info_dict['voxel_size'],
             num_class=self.num_class if not self.model_cfg.ROI_HEAD.CLASS_AGNOSTIC else 1,

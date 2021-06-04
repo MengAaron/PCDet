@@ -2,6 +2,7 @@ CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
+
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: ['placeholder']
         AUG_CONFIG_LIST:
@@ -28,12 +29,13 @@ DATA_CONFIG:
 
             - NAME: random_world_scaling
               WORLD_SCALE_RANGE: [0.95, 1.05]
+
     RANGE_CONFIG:
       RANGE_IMAGE_SHAPE: [ 64, 512 ]
       USE_XYZ: True
      
 MODEL:
-  NAME: RRCNN
+    NAME: RRCNN
 
     BACKBONE_RANGE:
       NAME: UNet

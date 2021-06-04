@@ -334,8 +334,8 @@ class NeighborVoxelSetAbstraction(nn.Module):
             raise NotImplementedError
         keypoints_list = []
         pt_idxs_list = []
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         for bs_idx in range(batch_size):
             bs_mask = (batch_indices == bs_idx)
             sampled_points = src_points[bs_mask].unsqueeze(dim=0)  # (1, N, 3)
@@ -350,7 +350,7 @@ class NeighborVoxelSetAbstraction(nn.Module):
                     cur_pt_idxs[0] = non_empty.repeat(times)[:self.model_cfg.NUM_KEYPOINTS]
 
                 keypoints = sampled_points[0][cur_pt_idxs[0]].unsqueeze(dim=0)
-                pt_idxs_list.append(cur_pt_idxs[0])
+                pt_idxs_list.append(cur_pt_idxs)
 
             elif self.model_cfg.SAMPLE_METHOD == 'FastFPS':
                 raise NotImplementedError
@@ -360,7 +360,7 @@ class NeighborVoxelSetAbstraction(nn.Module):
             keypoints_list.append(keypoints)
 
         keypoints = torch.cat(keypoints_list, dim=0)  # (B, M, 3)
-        pt_idxs = torch.cat(pt_idxs_list, dim=0)
+        pt_idxs = torch.cat(pt_idxs_list, dim=0) # (B, M)
         return keypoints, pt_idxs
 
     def forward(self, batch_dict):
@@ -399,6 +399,13 @@ class NeighborVoxelSetAbstraction(nn.Module):
 
         if 'raw_points' in self.model_cfg.FEATURES_SOURCE:
             raw_points = batch_dict['points']
+            keypoints_feature_list = []
+            for batch_idx in range(batch_size):
+                batch_points_mask = raw_points[:, 0] == batch_idx
+                this_raw_points = raw_points[batch_points_mask, 1:]
+                this_keypoints_feature = this_raw_points[pt_idxs[batch_idx]]
+                keypoints_feature_list.append(this_keypoints_feature.unsqueeze(0))
+            point_features_list.append(torch.cat(keypoints_feature_list, dim=0))
             # xyz = raw_points[:, 1:4]
             # xyz_batch_cnt = xyz.new_zeros(batch_size).int()
             # for bs_idx in range(batch_size):
@@ -413,7 +420,7 @@ class NeighborVoxelSetAbstraction(nn.Module):
             #     features=point_features,
             # )
             # point_features_list.append(pooled_features.view(batch_size, num_keypoints, -1))
-            keypoints = raw_points[pt_idxs]
+            # keypoints = raw_points[pt_idxs]
 
         for k, src_name in enumerate(self.SA_layer_names):
             cur_coords = batch_dict['multi_scale_3d_features'][src_name].indices

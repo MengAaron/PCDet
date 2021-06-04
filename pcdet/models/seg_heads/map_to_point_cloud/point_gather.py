@@ -106,5 +106,7 @@ class PointGather(nn.Module):
         batch_dict['voxel_num_points'] = foreground_voxel_num_points
         batch_dict.pop('range_features', None)
         batch_dict.pop('seg_pred', None)
+        batch_dict.pop('ri_indices', None)
+        batch_dict.pop('range_mask', None)
 
         return batch_dict

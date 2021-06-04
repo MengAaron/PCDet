@@ -29,7 +29,7 @@ DATA_CONFIG:
             - NAME: random_world_scaling
               WORLD_SCALE_RANGE: [0.95, 1.05]
     RANGE_CONFIG:
-        RANGE_IMAGE_SHAPE: [ 64, 2650 ]
+        RANGE_IMAGE_SHAPE: [64, 512]
 
 
 MODEL:

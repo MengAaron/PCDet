@@ -7,8 +7,8 @@ class PVRCNN(Detector3DTemplate):
         self.module_list = self.build_networks()
 
     def forward(self, batch_dict):
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
 

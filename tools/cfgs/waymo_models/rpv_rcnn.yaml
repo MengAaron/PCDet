@@ -7,7 +7,7 @@ DATA_CONFIG:
 
 
 MODEL:
-    NAME: RangeTemplate
+    NAME: RPVRCNN
 
     BACKBONE_RANGE:
         NAME: UNet2
@@ -215,7 +215,9 @@ MODEL:
     LOSS_CONFIG:
         LOSS_WEIGHTS: {
             'seg_weight': 400.0,
-            'rpn_weight': 1.0
+            'rpn_weight': 1.0,
+            'point_weight': 1.0,
+            'rcnn_weight': 1.0
         }
 
 

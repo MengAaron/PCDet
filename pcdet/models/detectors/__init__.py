@@ -8,7 +8,7 @@ from .second_net import SECONDNet
 from .center_point import CenterPoint
 from .second_net_iou import SECONDNetIoU
 from .caddn import CaDDN
-from .RSN import RangeTemplate, RSN, RRCNN
+from .RSN import RangeTemplate, RSN, RRCNN,RPVRCNN
 
 __all__ = {
     'Detector3DTemplate': Detector3DTemplate,
@@ -24,6 +24,7 @@ __all__ = {
     'RangeTemplate': RangeTemplate,
     'RSN': RSN,
     'RRCNN': RRCNN,
+    'RPVRCNN': RPVRCNN,
     "PointPillarRCNN":PointPillarRCNN
 }
 

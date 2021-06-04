@@ -11,8 +11,8 @@ class RangeTemplate(Detector3DTemplate):
         self.iter = 0
 
     def forward(self, batch_dict):
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         for i, cur_module in enumerate(self.module_list):
             self.iter += 1
             tic = time.time()
@@ -101,4 +101,35 @@ class RRCNN(RangeTemplate):
         loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
 
         loss = loss_seg * seg_weight + loss_rpn * rpn_weight + rcnn_weight * loss_rcnn
+        return loss, tb_dict, disp_dict
+
+class RPVRCNN(RangeTemplate):
+    def __init__(self, model_cfg, num_class, dataset):
+        super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
+
+    def get_training_loss(self):
+        loss_config = self.model_cfg.get('LOSS_CONFIG', None)
+        if loss_config is not None:
+            weight_dict = loss_config['LOSS_WEIGHTS']
+            seg_weight = weight_dict['seg_weight']
+            rpn_weight = weight_dict['rpn_weight']
+            point_weight = weight_dict['point_weight_weight']
+            rcnn_weight = weight_dict['rcnn_weight']
+        else:
+            seg_weight = 1
+            rpn_weight = 1
+            point_weight = 1
+            rcnn_weight = 1
+        disp_dict = {}
+
+        loss_seg = self.seg_head.get_loss()
+        loss_rpn, tb_dict = self.dense_head.get_loss()
+        tb_dict = {
+            'loss_rpn': loss_rpn.item(),
+            **tb_dict
+        }
+        loss_point, tb_dict = self.point_head.get_loss(tb_dict)
+        loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
+
+        loss = loss_seg * seg_weight + loss_rpn * rpn_weight + point_weight * loss_point + rcnn_weight * loss_rcnn
         return loss, tb_dict, disp_dict

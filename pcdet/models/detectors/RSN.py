@@ -113,7 +113,7 @@ class RPVRCNN(RangeTemplate):
             weight_dict = loss_config['LOSS_WEIGHTS']
             seg_weight = weight_dict['seg_weight']
             rpn_weight = weight_dict['rpn_weight']
-            point_weight = weight_dict['point_weight_weight']
+            point_weight = weight_dict['point_weight']
             rcnn_weight = weight_dict['rcnn_weight']
         else:
             seg_weight = 1

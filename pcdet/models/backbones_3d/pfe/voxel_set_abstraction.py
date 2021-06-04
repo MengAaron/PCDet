@@ -334,6 +334,8 @@ class NeighborVoxelSetAbstraction(nn.Module):
             raise NotImplementedError
         keypoints_list = []
         pt_idxs_list = []
+        import pudb
+        pudb.set_trace()
         for bs_idx in range(batch_size):
             bs_mask = (batch_indices == bs_idx)
             sampled_points = src_points[bs_mask].unsqueeze(dim=0)  # (1, N, 3)

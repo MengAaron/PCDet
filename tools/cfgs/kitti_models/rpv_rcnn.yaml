@@ -37,6 +37,7 @@ MODEL:
 
     BACKBONE_RANGE:
         NAME: UNet2
+        NUM_INPUT_CHANNELS: 2
 
     SEG_HEAD:
         NAME: FCNHead

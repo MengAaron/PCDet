@@ -35,6 +35,7 @@ class BallQuery(Function):
         pointnet2.ball_query_wrapper(B, M, radius, nsample, new_xyz, new_xyz_batch_cnt, xyz, xyz_batch_cnt, idx)
         empty_ball_mask = (idx[:, 0] == -1)
         idx[empty_ball_mask] = 0
+        ctx.mark_non_differentiable(idx)
         return idx, empty_ball_mask
 
     @staticmethod

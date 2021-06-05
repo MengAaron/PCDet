@@ -35,7 +35,7 @@ class PointGather(nn.Module):
     def foreground_points_voxels_filter_and_feature_gather(self, batch_dict):
         range_features = batch_dict['range_features'].permute((0, 2, 3, 1))
         seg_mask = batch_dict['seg_pred']
-        if len(seg_mask) == 3:
+        if len(seg_mask.shape) == 3:
             batch_size, height, width = batch_dict['seg_pred'].shape
         else:
             batch_size, _, height, width = batch_dict['seg_pred'].shape
@@ -53,7 +53,7 @@ class PointGather(nn.Module):
 
         for batch_idx in range(batch_size):
             this_range_features = range_features[batch_idx].reshape((height * width, -1))
-            if len(seg_mask.size) == 3:
+            if len(seg_mask.shape) == 3:
                 cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
             else:
                 cur_seg_mask = seg_mask[batch_idx].argmax(dim=0)

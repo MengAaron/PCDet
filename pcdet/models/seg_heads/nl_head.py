@@ -444,6 +444,17 @@ class FCNHead(nn.Module):
 
         return inputs
 
+    def build_loss(self):
+        # criterion
+        self.add_module(
+            'crit', loss_utils.SegFocalLoss()
+        )
+
+    def get_loss(self):
+        input = self.forward_ret_dict['seg_pred']
+        target = self.forward_ret_dict['range_mask']
+        return self.crit(input, target)
+
     def cls_seg(self, feat):
         """Classify each pixel."""
         if self.dropout is not None:
@@ -460,7 +471,12 @@ class FCNHead(nn.Module):
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
         output = self.cls_seg(output)
-        return output
+        seg_pred = resize(output, [64, 2650], mode='bilinear',
+            align_corners=self.align_corners)
+        self.forward_ret_dict['seg_pred'] = seg_pred
+        if self.training:
+            self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
+        return batch_dict
 
 
 
@@ -494,21 +510,12 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
 
-    def build_loss(self):
-        # criterion
-        self.add_module(
-            'crit', loss_utils.SegFocalLoss()
-        )
 
-    def get_loss(self):
-        input = self.forward_ret_dict['seg_pred']
-        target = self.forward_ret_dict['range_mask']
-        return self.crit(input, target)
 
     def forward(self, batch_dict):
         """Forward function."""
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         inputs = batch_dict['resnet_output']
         x = self._transform_inputs(inputs)
         output = self.convs[0](x)

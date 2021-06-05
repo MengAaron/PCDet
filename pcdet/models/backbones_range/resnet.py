@@ -511,6 +511,9 @@ class ResNet(nn.Module):
         self.feat_dim = self.block.expansion * base_channels * 2 ** (
                 len(self.stage_blocks) - 1)
 
+    def get_output_feature_dim(self):
+        return self.feat_dim
+
     def make_stage_plugins(self, plugins, stage_idx):
         """make plugins for ResNet 'stage_idx'th stage .
 

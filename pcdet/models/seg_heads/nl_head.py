@@ -382,6 +382,7 @@ class FCNHead(nn.Module):
                     padding=kernel_size // 2,
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels[-1])[1], nn.ReLU()])
         self.forward_ret_dict = {}
+        self.build_loss()
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.

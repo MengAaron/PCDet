@@ -13,7 +13,7 @@ MODEL:
         NAME: UNet2
 
     SEG_HEAD:
-        NAME: FCNHead
+        NAME: FCNHeadSimple
 
     MAP_TO_POINT_CLOUD:
         NAME: PointGather

@@ -3,9 +3,9 @@ import torch.nn as nn
 from ...utils import loss_utils
 
 
-class FCNHead(nn.Module):
+class FCNHeadSimple(nn.Module):
     def __init__(self, model_cfg, in_channels, **kwargs):
-        super(FCNHead, self).__init__()
+        super(FCNHeadSimple, self).__init__()
         self.model_cfg = model_cfg
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=1, kernel_size=1)
         self.build_loss()

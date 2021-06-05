@@ -22,7 +22,7 @@ class Detector3DTemplate(nn.Module):
         self.register_buffer('global_step', torch.LongTensor(1).zero_())
 
         self.module_topology = [
-            'backbone_range', 'seg_head', 'map_to_point_cloud', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
+            'backbone_range', 'seg_head', 'aux_head', 'map_to_point_cloud', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
             'backbone_2d', 'dense_head', 'point_head', 'roi_head'
         ]
 
@@ -67,6 +67,17 @@ class Detector3DTemplate(nn.Module):
 
     def build_seg_head(self, model_info_dict):
         if self.model_cfg.get('SEG_HEAD', None) is None:
+            return None, model_info_dict
+
+        seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](
+            model_cfg=self.model_cfg.SEG_HEAD,
+            in_channels=model_info_dict['num_point_features'],
+        )
+        model_info_dict['module_list'].append(seg_head_module)
+        return seg_head_module, model_info_dict
+
+    def build_aux_head(self, model_info_dict):
+        if self.model_cfg.get('AUX_HEAD', None) is None:
             return None, model_info_dict
 
         seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](

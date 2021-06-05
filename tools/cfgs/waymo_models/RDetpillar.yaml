@@ -38,7 +38,7 @@ MODEL:
         NUM_INPUT_CHANNELS: 6
 
     SEG_HEAD:
-        NAME: FCNHead
+        NAME: FCNHeadSimple
 
     MAP_TO_POINT_CLOUD:
         NAME: PointGather

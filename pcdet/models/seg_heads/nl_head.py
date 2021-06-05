@@ -325,6 +325,7 @@ class FCNHead(nn.Module):
                  concat_input=True,
                  dilation=1,
                  dropout_ratio=0.1,
+                 norm_cfg=dict(type='BN', requires_grad=True),
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
@@ -334,6 +335,7 @@ class FCNHead(nn.Module):
         self.conv_seg = nn.Conv2d(in_channels, 1, kernel_size=1)
         self.in_channels = in_channels
         self.channels = model_cfg.channels
+        self.norm_cfg = norm_cfg
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
         else:

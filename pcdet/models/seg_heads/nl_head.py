@@ -515,8 +515,8 @@ class NLHead(FCNHead):
 
     def forward(self, batch_dict):
         """Forward function."""
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         inputs = batch_dict['resnet_output']
         x = self._transform_inputs(inputs)
         output = self.convs[0](x)

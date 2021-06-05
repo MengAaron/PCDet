@@ -429,7 +429,8 @@ class FCNHead(nn.Module):
             upsampled_inputs = [
                 resize(
                     input=x,
-                    size=inputs[0].shape[2:],
+                    # size=inputs[0].shape[2:],
+                    size=[64, 2650],
                     mode='bilinear',
                     align_corners=self.align_corners) for x in inputs
             ]

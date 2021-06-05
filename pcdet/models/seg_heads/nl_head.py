@@ -377,6 +377,7 @@ class FCNHead(nn.Module):
                     kernel_size=kernel_size,
                     padding=kernel_size // 2,
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
+        self.forward_ret_dict = {}
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.
@@ -514,8 +515,8 @@ class NLHead(FCNHead):
 
     def forward(self, batch_dict):
         """Forward function."""
-        # import pudb
-        # pudb.set_trace()
+        import pudb
+        pudb.set_trace()
         inputs = batch_dict['resnet_output']
         x = self._transform_inputs(inputs)
         output = self.convs[0](x)

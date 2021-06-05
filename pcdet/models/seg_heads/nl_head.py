@@ -492,6 +492,11 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
 
+    def get_loss(self):
+        input = self.forward_ret_dict['seg_pred']
+        target = self.forward_ret_dict['range_mask']
+        return self.crit(input, target)
+
     def forward(self, batch_dict):
         """Forward function."""
         import pudb
@@ -501,7 +506,15 @@ class NLHead(FCNHead):
         output = self.convs[0](x)
         output = self.nl_block(output)
         output = self.convs[1](output)
+        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
+            align_corners=self.align_corners)
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
         output = self.cls_seg(output)
-        return output
+        seg_pred = resize(output, [64, 2650], mode='bilinear',
+            align_corners=self.align_corners)
+        batch_dict['seg_pred'] = seg_pred
+        self.forward_ret_dict['seg_pred'] = seg_pred
+        if self.training:
+            self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
+        return batch_dict

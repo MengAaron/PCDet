@@ -62,6 +62,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
     layer = nn.BatchNorm2d(num_features, eps=1e-5)
     if layer_type == 'SyncBN':
         layer = nn.SyncBatchNorm(num_features, eps=1e-5)
+        layer.ddp_gpu_size(1)
 
     for param in layer.parameters():
         param.requires_grad = requires_grad

@@ -3,14 +3,6 @@ import torch.nn as nn
 import torch.utils.checkpoint as cp
 
 
-# from mmcv.cnn import (build_conv_layer, build_norm_layer, build_plugin_layer,
-#                       constant_init, kaiming_init)
-# from mmcv.runner import load_checkpoint
-# from mmcv.utils.parrots_wrapper import _BatchNorm
-#
-# from mmseg.utils import get_root_logger
-# from ..utils import ResLayer
-
 def kaiming_init(module,
                  a=0,
                  mode='fan_out',

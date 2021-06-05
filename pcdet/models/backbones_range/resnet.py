@@ -258,26 +258,19 @@ class Bottleneck(nn.Module):
                  stride=1,
                  dilation=1,
                  downsample=None,
-                 style='pytorch',
                  with_cp=False,
                  norm_cfg=dict(type='BN')):
         super(Bottleneck, self).__init__()
-        assert style in ['pytorch', 'caffe']
 
         self.inplanes = inplanes
         self.planes = planes
         self.stride = stride
         self.dilation = dilation
-        self.style = style
         self.with_cp = with_cp
         self.norm_cfg = norm_cfg
 
-        if self.style == 'pytorch':
-            self.conv1_stride = 1
-            self.conv2_stride = stride
-        else:
-            self.conv1_stride = stride
-            self.conv2_stride = 1
+        self.conv1_stride = 1
+        self.conv2_stride = stride
 
         self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
         self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
@@ -451,7 +444,6 @@ class ResNet(nn.Module):
                  strides=(1, 2, 2, 2),
                  dilations=(1, 1, 1, 1),
                  out_indices=(0, 1, 2, 3),
-                 style='pytorch',
                  deep_stem=False,
                  avg_down=False,
                  frozen_stages=-1,
@@ -474,7 +466,6 @@ class ResNet(nn.Module):
         assert len(strides) == len(dilations) == num_stages
         self.out_indices = out_indices
         assert max(out_indices) < num_stages
-        self.style = style
         self.deep_stem = deep_stem
         self.avg_down = avg_down
         self.frozen_stages = frozen_stages
@@ -505,7 +496,6 @@ class ResNet(nn.Module):
                 num_blocks=num_blocks,
                 stride=stride,
                 dilation=dilation,
-                style=self.style,
                 avg_down=self.avg_down,
                 with_cp=with_cp,
                 norm_cfg=norm_cfg,

@@ -15,8 +15,9 @@ class RRCNNHead(RoIHeadTemplate):
 
         self.SA_modules = nn.ModuleList()
         self.USE_XYZ = model_cfg.get('USE_XYZ', False)
+        self.input_channels = input_channels
         if not self.USE_XYZ:
-            input_channels -= 3
+            self.input_channels -= 3
         block = self.post_act_block
 
         # c0 = self.model_cfg.ROI_AWARE_POOL.NUM_FEATURES // 2
@@ -26,7 +27,7 @@ class RRCNNHead(RoIHeadTemplate):
         #     block(64, c0, 3, padding=1, indice_key='rcnn_subm1_1'),
         # )
         self.conv_rpn = spconv.SparseSequential(
-            block(input_channels, 64, 3, padding=1, indice_key='rcnn_subm2'),
+            block(self.input_channels, 64, 3, padding=1, indice_key='rcnn_subm2'),
             block(64, c0, 3, padding=1, indice_key='rcnn_subm1_2'),
         )
 

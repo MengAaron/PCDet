@@ -82,19 +82,16 @@ class _NonLocalNd(nn.Module):
     def init_weights(self, std=0.01, zeros_init=True):
         if self.mode != 'gaussian':
             for m in [self.g, self.theta, self.phi]:
-                normal_init(m.conv, std=std)
+                normal_init(m, std=std)
         else:
-            normal_init(self.g.conv, std=std)
+            normal_init(self.g, std=std)
         if zeros_init:
-            if self.conv_out.norm_cfg is None:
-                constant_init(self.conv_out.conv, 0)
-            else:
-                constant_init(self.conv_out.norm, 0)
+            constant_init(self.conv_out[1], 0)
         else:
             if self.conv_out.norm_cfg is None:
-                normal_init(self.conv_out.conv, std=std)
+                normal_init(self.conv_out[0], std=std)
             else:
-                normal_init(self.conv_out.norm, std=std)
+                normal_init(self.conv_out[1], std=std)
 
     def gaussian(self, theta_x, phi_x):
         # NonLocal1d pairwise_weight: [N, H, H]

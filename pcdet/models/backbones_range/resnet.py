@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch.utils.checkpoint as cp
+
+
 # from mmcv.cnn import (build_conv_layer, build_norm_layer, build_plugin_layer,
 #                       constant_init, kaiming_init)
 # from mmcv.runner import load_checkpoint
@@ -64,7 +66,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
     name = abbr + str(postfix)
 
     requires_grad = cfg_.pop('requires_grad', True)
-    layer = nn.BatchNorm2d(num_features,eps=1e-5)
+    layer = nn.BatchNorm2d(num_features, eps=1e-5)
     if layer_type == 'SyncBN':
         layer._specify_ddp_gpu_num(1)
 
@@ -72,6 +74,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
         param.requires_grad = requires_grad
 
     return name, layer
+
 
 class ResLayer(nn.Sequential):
     """ResLayer to build ResNet style backbone.
@@ -102,7 +105,6 @@ class ResLayer(nn.Sequential):
                  stride=1,
                  dilation=1,
                  avg_down=False,
-                 conv_cfg=None,
                  norm_cfg=dict(type='BN'),
                  multi_grid=None,
                  contract_dilation=False,
@@ -146,8 +148,6 @@ class ResLayer(nn.Sequential):
                 planes=planes,
                 stride=stride,
                 dilation=first_dilation,
-                downsample=downsample,
-                conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
                 **kwargs))
         inplanes = planes * block.expansion
@@ -158,10 +158,10 @@ class ResLayer(nn.Sequential):
                     planes=planes,
                     stride=1,
                     dilation=dilation if multi_grid is None else multi_grid[i],
-                    conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
                     **kwargs))
         super(ResLayer, self).__init__(*layers)
+
 
 class BasicBlock(nn.Module):
     """Basic block for ResNet."""
@@ -260,7 +260,6 @@ class Bottleneck(nn.Module):
                  downsample=None,
                  style='pytorch',
                  with_cp=False,
-                 conv_cfg=None,
                  norm_cfg=dict(type='BN')):
         super(Bottleneck, self).__init__()
         assert style in ['pytorch', 'caffe']
@@ -271,9 +270,7 @@ class Bottleneck(nn.Module):
         self.dilation = dilation
         self.style = style
         self.with_cp = with_cp
-        self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
-
 
         if self.style == 'pytorch':
             self.conv1_stride = 1
@@ -322,7 +319,6 @@ class Bottleneck(nn.Module):
                 planes, self.after_conv2_plugins)
             self.after_conv3_plugin_names = self.make_block_plugins(
                 planes * self.expansion, self.after_conv3_plugins)
-
 
     @property
     def norm1(self):
@@ -459,13 +455,12 @@ class ResNet(nn.Module):
                  deep_stem=False,
                  avg_down=False,
                  frozen_stages=-1,
-                 conv_cfg=None,
                  norm_cfg=dict(type='BN', requires_grad=True),
                  norm_eval=False,
                  multi_grid=None,
                  contract_dilation=False,
                  with_cp=False,
-                 zero_init_residual=True,**kwargs):
+                 zero_init_residual=True, **kwargs):
         super(ResNet, self).__init__()
         if depth not in self.arch_settings:
             raise KeyError(f'invalid depth {depth} for resnet')
@@ -483,7 +478,6 @@ class ResNet(nn.Module):
         self.deep_stem = deep_stem
         self.avg_down = avg_down
         self.frozen_stages = frozen_stages
-        self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
         self.with_cp = with_cp
         self.norm_eval = norm_eval
@@ -503,7 +497,7 @@ class ResNet(nn.Module):
             # multi grid is applied to last layer only
             stage_multi_grid = multi_grid if i == len(
                 self.stage_blocks) - 1 else None
-            planes = base_channels * 2**i
+            planes = base_channels * 2 ** i
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -514,19 +508,18 @@ class ResNet(nn.Module):
                 style=self.style,
                 avg_down=self.avg_down,
                 with_cp=with_cp,
-                conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
                 multi_grid=stage_multi_grid,
                 contract_dilation=contract_dilation)
             self.inplanes = planes * self.block.expansion
-            layer_name = f'layer{i+1}'
+            layer_name = f'layer{i + 1}'
             self.add_module(layer_name, res_layer)
             self.res_layers.append(layer_name)
 
         self._freeze_stages()
 
-        self.feat_dim = self.block.expansion * base_channels * 2**(
-            len(self.stage_blocks) - 1)
+        self.feat_dim = self.block.expansion * base_channels * 2 ** (
+                len(self.stage_blocks) - 1)
 
     def make_stage_plugins(self, plugins, stage_idx):
         """make plugins for ResNet 'stage_idx'th stage .
@@ -698,7 +691,6 @@ class ResNet(nn.Module):
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
-
 
 
 class ResNetV1c(ResNet):

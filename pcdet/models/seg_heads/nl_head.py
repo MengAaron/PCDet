@@ -509,7 +509,7 @@ class NLHead(FCNHead):
         self.use_scale = use_scale
         self.mode = mode
         self.nl_block = NonLocal2d(
-            in_channels=self.channels[-1],
+            in_channels=self.channels[0],
             reduction=self.reduction,
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,

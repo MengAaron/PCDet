@@ -344,8 +344,10 @@ class Bottleneck(nn.Module):
 
             if self.downsample is not None:
                 identity = self.downsample(x)
-
-            out += self.shortcut(identity)
+            if self.shortcut:
+                out += self.shortcut(identity)
+            else:
+                out += identity
 
             return out
 

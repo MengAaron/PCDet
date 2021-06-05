@@ -35,7 +35,10 @@ class PointGather(nn.Module):
     def foreground_points_voxels_filter_and_feature_gather(self, batch_dict):
         range_features = batch_dict['range_features'].permute((0, 2, 3, 1))
         seg_mask = batch_dict['seg_pred']
-        batch_size, height, width = batch_dict['seg_pred'].shape
+        if len(seg_mask) == 3:
+            batch_size, height, width = batch_dict['seg_pred'].shape
+        else:
+            batch_size, _, height, width = batch_dict['seg_pred'].shape
         points = batch_dict['points']
         ri_indices = batch_dict['ri_indices']
         voxels = batch_dict['voxels']

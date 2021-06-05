@@ -324,9 +324,12 @@ class FCNHead(nn.Module):
                  dilation=1,
                  dropout_ratio=0.1,
                  norm_cfg=dict(type='BN', requires_grad=True),
+                 input_transform=None,
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
+        self.in_index = model_cfg.in_index
+        self._init_inputs(in_channels, self.in_index, input_transform)
         self.num_convs = num_convs
         self.concat_input = concat_input
         self.kernel_size = kernel_size
@@ -371,6 +374,44 @@ class FCNHead(nn.Module):
                     kernel_size=kernel_size,
                     padding=kernel_size // 2,
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
+
+    def _init_inputs(self, in_channels, in_index, input_transform):
+        """Check and initialize input transforms.
+
+        The in_channels, in_index and input_transform must match.
+        Specifically, when input_transform is None, only single feature map
+        will be selected. So in_channels and in_index must be of type int.
+        When input_transform
+
+        Args:
+            in_channels (int|Sequence[int]): Input channels.
+            in_index (int|Sequence[int]): Input feature index.
+            input_transform (str|None): Transformation type of input features.
+                Options: 'resize_concat', 'multiple_select', None.
+                'resize_concat': Multiple feature maps will be resize to the
+                    same size as first one and than concat together.
+                    Usually used in FCN head of HRNet.
+                'multiple_select': Multiple feature maps will be bundle into
+                    a list and passed into decode head.
+                None: Only one select feature map is allowed.
+        """
+
+        if input_transform is not None:
+            assert input_transform in ['resize_concat', 'multiple_select']
+        self.input_transform = input_transform
+        self.in_index = in_index
+        if input_transform is not None:
+            assert isinstance(in_channels, (list, tuple))
+            assert isinstance(in_index, (list, tuple))
+            assert len(in_channels) == len(in_index)
+            if input_transform == 'resize_concat':
+                self.in_channels = sum(in_channels)
+            else:
+                self.in_channels = in_channels
+        else:
+            assert isinstance(in_channels, int)
+            assert isinstance(in_index, int)
+            self.in_channels = in_channels
 
     def _transform_inputs(self, inputs):
         """Transform inputs for decoder.

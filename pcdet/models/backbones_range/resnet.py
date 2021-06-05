@@ -175,12 +175,8 @@ class BasicBlock(nn.Module):
                  dilation=1,
                  downsample=None,
                  with_cp=False,
-                 norm_cfg=dict(type='BN'),
-                 dcn=None,
-                 plugins=None):
+                 norm_cfg=dict(type='BN'),):
         super(BasicBlock, self).__init__()
-        assert dcn is None, 'Not implemented yet.'
-        assert plugins is None, 'Not implemented yet.'
 
         self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
         self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
@@ -305,13 +301,6 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
 
-        if self.with_plugins:
-            self.after_conv1_plugin_names = self.make_block_plugins(
-                planes, self.after_conv1_plugins)
-            self.after_conv2_plugin_names = self.make_block_plugins(
-                planes, self.after_conv2_plugins)
-            self.after_conv3_plugin_names = self.make_block_plugins(
-                planes * self.expansion, self.after_conv3_plugins)
 
     @property
     def norm1(self):
@@ -338,21 +327,15 @@ class Bottleneck(nn.Module):
             out = self.norm1(out)
             out = self.relu(out)
 
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv1_plugin_names)
 
             out = self.conv2(out)
             out = self.norm2(out)
             out = self.relu(out)
 
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv2_plugin_names)
 
             out = self.conv3(out)
             out = self.norm3(out)
 
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv3_plugin_names)
 
             if self.downsample is not None:
                 identity = self.downsample(x)
@@ -514,58 +497,6 @@ class ResNet(nn.Module):
     def get_output_feature_dim(self):
         return self.feat_dim
 
-    def make_stage_plugins(self, plugins, stage_idx):
-        """make plugins for ResNet 'stage_idx'th stage .
-
-        Currently we support to insert 'context_block',
-        'empirical_attention_block', 'nonlocal_block' into the backbone like
-        ResNet/ResNeXt. They could be inserted after conv1/conv2/conv3 of
-        Bottleneck.
-
-        An example of plugins format could be :
-        >>> plugins=[
-        ...     dict(cfg=dict(type='xxx', arg1='xxx'),
-        ...          stages=(False, True, True, True),
-        ...          position='after_conv2'),
-        ...     dict(cfg=dict(type='yyy'),
-        ...          stages=(True, True, True, True),
-        ...          position='after_conv3'),
-        ...     dict(cfg=dict(type='zzz', postfix='1'),
-        ...          stages=(True, True, True, True),
-        ...          position='after_conv3'),
-        ...     dict(cfg=dict(type='zzz', postfix='2'),
-        ...          stages=(True, True, True, True),
-        ...          position='after_conv3')
-        ... ]
-        >>> self = ResNet(depth=18)
-        >>> stage_plugins = self.make_stage_plugins(plugins, 0)
-        >>> assert len(stage_plugins) == 3
-
-        Suppose 'stage_idx=0', the structure of blocks in the stage would be:
-            conv1-> conv2->conv3->yyy->zzz1->zzz2
-        Suppose 'stage_idx=1', the structure of blocks in the stage would be:
-            conv1-> conv2->xxx->conv3->yyy->zzz1->zzz2
-
-        If stages is missing, the plugin would be applied to all stages.
-
-        Args:
-            plugins (list[dict]): List of plugins cfg to build. The postfix is
-                required if multiple same type plugins are inserted.
-            stage_idx (int): Index of stage to build
-
-        Returns:
-            list[dict]: Plugins for current stage
-        """
-        stage_plugins = []
-        for plugin in plugins:
-            plugin = plugin.copy()
-            stages = plugin.pop('stages', None)
-            assert stages is None or len(stages) == self.num_stages
-            # whether to insert plugin into current stage
-            if stages is None or stages[stage_idx]:
-                stage_plugins.append(plugin)
-
-        return stage_plugins
 
     def make_res_layer(self, **kwargs):
         """Pack all blocks in a stage into a ``ResLayer``."""

@@ -32,7 +32,7 @@ class _NonLocalNd(nn.Module):
                  reduction=2,
                  use_scale=True,
                  conv_cfg=None,
-                 norm_cfg=dict(type='BN', requires_grad=True),
+                 norm_cfg=dict(type='SyncBN', requires_grad=True),
                  mode='embedded_gaussian',
                  **kwargs):
         super(_NonLocalNd, self).__init__()
@@ -324,7 +324,7 @@ class FCNHead(nn.Module):
                  concat_input=True,
                  dilation=1,
                  dropout_ratio=0.1,
-                 norm_cfg=dict(type='BN', requires_grad=True),
+                 norm_cfg=dict(type='SyncBN', requires_grad=True),
                  input_transform=None,align_corners=False,
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
@@ -574,7 +574,7 @@ class NLHead(FCNHead):
         seg_pred = self.clip_sigmoid(seg_pred)
         # import pudb
         # pudb.set_trace()
-        batch_dict['seg_pred'] = seg_pred[:,0]
+        batch_dict['seg_pred'] = seg_pred[:, 0]
 
         return batch_dict
 

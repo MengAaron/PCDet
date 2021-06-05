@@ -98,7 +98,7 @@ class ResLayer(nn.Sequential):
                  stride=1,
                  dilation=1,
                  avg_down=False,
-                 norm_cfg=dict(type='BN'),
+                 norm_cfg=dict(type='SyncBN'),
                  multi_grid=None,
                  contract_dilation=False,
                  **kwargs):
@@ -168,7 +168,7 @@ class BasicBlock(nn.Module):
                  dilation=1,
                  downsample=None,
                  with_cp=False,
-                 norm_cfg=dict(type='BN'),):
+                 norm_cfg=dict(type='SyncBN'),):
         super(BasicBlock, self).__init__()
 
         self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
@@ -248,7 +248,7 @@ class Bottleneck(nn.Module):
                  dilation=1,
                  downsample=None,
                  with_cp=False,
-                 norm_cfg=dict(type='BN')):
+                 norm_cfg=dict(type='SyncBN')):
         super(Bottleneck, self).__init__()
 
         self.inplanes = inplanes
@@ -428,7 +428,7 @@ class ResNet(nn.Module):
                  deep_stem=False,
                  avg_down=False,
                  frozen_stages=-1,
-                 norm_cfg=dict(type='BN', requires_grad=True),
+                 norm_cfg=dict(type='SyncBN', requires_grad=True),
                  norm_eval=False,
                  multi_grid=None,
                  contract_dilation=False,

@@ -324,10 +324,11 @@ class FCNHead(nn.Module):
                  dilation=1,
                  dropout_ratio=0.1,
                  norm_cfg=dict(type='BN', requires_grad=True),
-                 input_transform=None,
+                 input_transform=None,align_corners=False,
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
+        self.align_corners = align_corners
         self.in_index = model_cfg.in_index
         self._init_inputs(in_channels, self.in_index, input_transform)
         self.num_convs = num_convs
@@ -491,6 +492,12 @@ class NLHead(FCNHead):
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,
             mode=self.mode)
+
+    def build_loss(self):
+        # criterion
+        self.add_module(
+            'crit', loss_utils.SegFocalLoss()
+        )
 
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']

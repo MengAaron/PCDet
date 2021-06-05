@@ -604,8 +604,8 @@ class ResNet(nn.Module):
 
     def forward(self, batch_dict):
         """Forward function."""
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         x = batch_dict['range_image']
         if self.deep_stem:
             x = self.stem(x)
@@ -620,7 +620,8 @@ class ResNet(nn.Module):
             x = res_layer(x)
             if i in self.out_indices:
                 outs.append(x)
-        return tuple(outs)
+        batch_dict['resnet_output'] = tuple(outs)
+        return batch_dict
 
 
 class ResNetV1c(ResNet):

@@ -406,8 +406,10 @@ class FCNHead(nn.Module):
         output = self.conv_seg(feat)
         return output
 
-    def forward(self, inputs):
+    def forward(self, batch_dict):
         """Forward function."""
+
+        inputs = batch_dict['resnet_output']
         x = self._transform_inputs(inputs)
         output = self.convs(x)
         if self.concat_input:
@@ -447,8 +449,11 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
 
-    def forward(self, inputs):
+    def forward(self, batch_dict):
         """Forward function."""
+        import pudb
+        pudb.set_trace()
+        inputs = batch_dict['resnet_output']
         x = self._transform_inputs(inputs)
         output = self.convs[0](x)
         output = self.nl_block(output)

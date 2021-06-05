@@ -446,7 +446,6 @@ class NLHead(FCNHead):
             in_channels=self.channels,
             reduction=self.reduction,
             use_scale=self.use_scale,
-            conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
             mode=self.mode)
 

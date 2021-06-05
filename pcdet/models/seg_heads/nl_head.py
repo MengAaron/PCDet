@@ -529,6 +529,7 @@ class NLHead(FCNHead):
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
             align_corners=self.align_corners)
+        output = torch.squeeze(output, dim=1)
         batch_dict['seg_pred'] = seg_pred
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:

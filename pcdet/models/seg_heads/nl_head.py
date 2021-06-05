@@ -336,9 +336,9 @@ class FCNHead(nn.Module):
         self.concat_input = concat_input
         self.kernel_size = kernel_size
         self.channels = model_cfg.channels
-        if isinstance(self.channels, int):
-            self.channels = [self.channels] * num_convs
-        self.conv_seg = nn.Conv2d(self.channels[-1], 1, kernel_size=1)
+        # if isinstance(self.channels, int):
+        #     self.channels = [self.channels] * num_convs
+        self.conv_seg = nn.Conv2d(self.channels, 1, kernel_size=1)
         # self.in_channels = in_channels
 
         self.norm_cfg = norm_cfg
@@ -355,20 +355,20 @@ class FCNHead(nn.Module):
         convs = []
         convs.append(nn.Conv2d(
                 self.in_channels,
-                self.channels[0],
+                self.channels,
                 kernel_size=kernel_size,
                 padding=conv_padding,
                 dilation=dilation))
-        convs.append(build_norm_layer(self.norm_cfg, self.channels[0])[1])
+        convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
         convs.append(nn.ReLU())
         for i in range(num_convs - 1):
             convs.append(nn.Conv2d(
-                    self.channels[i],
-                    self.channels[i+1],
+                    self.channels,
+                    self.channels,
                     kernel_size=kernel_size,
                     padding=conv_padding,
                     dilation=dilation))
-            convs.append(build_norm_layer(self.norm_cfg, self.channels[i+1])[1])
+            convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
             convs.append(nn.ReLU())
         if num_convs == 0:
             self.convs = nn.Identity()
@@ -376,11 +376,11 @@ class FCNHead(nn.Module):
             self.convs = nn.Sequential(*convs)
         if self.concat_input:
             self.conv_cat = nn.Sequential(*[nn.Conv2d(
-                    self.in_channels + self.channels[0],
-                    self.channels[-1],
+                    self.in_channels + self.channels,
+                    self.channels,
                     kernel_size=kernel_size,
                     padding=kernel_size // 2,
-                    dilation=dilation), build_norm_layer(self.norm_cfg, self.channels[-1])[1], nn.ReLU()])
+                    dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
         self.build_loss()
 
@@ -510,7 +510,7 @@ class NLHead(FCNHead):
         self.use_scale = use_scale
         self.mode = mode
         self.nl_block = NonLocal2d(
-            in_channels=self.channels[0],
+            in_channels=self.channels,
             reduction=self.reduction,
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,

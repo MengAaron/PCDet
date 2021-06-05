@@ -336,7 +336,9 @@ class FCNHead(nn.Module):
         self.concat_input = concat_input
         self.kernel_size = kernel_size
         self.channels = model_cfg.channels
-        self.conv_seg = nn.Conv2d(self.channels, 1, kernel_size=1)
+        if isinstance(self.channels, int):
+            self.channels = [self.channels] * num_convs
+        self.conv_seg = nn.Conv2d(self.channels[-1], 1, kernel_size=1)
         # self.in_channels = in_channels
 
         self.norm_cfg = norm_cfg
@@ -347,8 +349,7 @@ class FCNHead(nn.Module):
         # if num_convs == 0:
         #     assert self.in_channels == self.channels[0]
 
-        if isinstance(self.channels,int):
-            self.channels = [self.channels] * num_convs
+
 
         conv_padding = (kernel_size // 2) * dilation
         convs = []

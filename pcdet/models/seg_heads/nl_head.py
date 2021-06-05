@@ -338,8 +338,9 @@ class FCNHead(nn.Module):
         self.channels = model_cfg.channels
         # if isinstance(self.channels, int):
         #     self.channels = [self.channels] * num_convs
-        self.conv_seg = nn.Conv2d(self.channels, 1, kernel_size=1)
+        self.conv_seg = nn.Conv2d(32, 2, kernel_size=1)
         # self.in_channels = in_channels
+        self.weights = 0.4
 
         self.norm_cfg = norm_cfg
         if dropout_ratio > 0:
@@ -382,6 +383,8 @@ class FCNHead(nn.Module):
                     padding=kernel_size // 2,
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
+        self.inter_conv = nn.Sequential(
+            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg)[1], nn.ReLU()])
         self.build_loss()
 
     def _init_inputs(self, in_channels, in_index, input_transform):
@@ -453,13 +456,13 @@ class FCNHead(nn.Module):
     def build_loss(self):
         # criterion
         self.add_module(
-            'crit', loss_utils.SegFocalLoss()
+            'crit', loss_utils.WeightedCrossEntropyLoss()
         )
 
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']
         target = self.forward_ret_dict['range_mask']
-        return self.crit(input, target)
+        return self.crit(input, target, self.weights)
 
     def cls_seg(self, feat):
         """Classify each pixel."""
@@ -490,13 +493,17 @@ class FCNHead(nn.Module):
         output = self.convs(x)
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
+        output = self.inter_conv(output)
+        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
+                                              align_corners=self.align_corners)
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
             align_corners=self.align_corners)
-        seg_pred = self.clip_sigmoid(seg_pred)
+
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
+        # seg_pred = self.clip_sigmoid(seg_pred)
         return batch_dict
 
 
@@ -530,7 +537,9 @@ class NLHead(FCNHead):
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,
             mode=self.mode)
-        self.out_dim = self.channels
+        self.weights = 1.0
+        self.out_dim = 32
+        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels,32,1),build_norm_layer(self.norm_cfg)[1],nn.ReLU()])
 
     def get_output_feature_dim(self):
         return self.out_dim
@@ -546,18 +555,23 @@ class NLHead(FCNHead):
         output = self.convs[0](x)
         output = self.nl_block(output)
         output = self.convs[1](output)
-        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
-            align_corners=self.align_corners)
+        output = self.inter_conv(output)
+
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
+        output = self.inter_conv(output)
+        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
+                                              align_corners=self.align_corners)
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
             align_corners=self.align_corners)
-        seg_pred = torch.squeeze(seg_pred, dim=1)
-        seg_pred = self.clip_sigmoid(seg_pred)
-        batch_dict['seg_pred'] = seg_pred
+
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
+
+        seg_pred = self.clip_sigmoid(seg_pred)
+        batch_dict['seg_pred'] = seg_pred[:, 0].unsqueeze(dim=1)
+
         return batch_dict
 

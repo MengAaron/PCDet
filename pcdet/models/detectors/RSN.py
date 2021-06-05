@@ -93,6 +93,8 @@ class RRCNN(RangeTemplate):
         disp_dict = {}
 
         loss_seg = self.seg_head.get_loss()
+        if self.aux_head is not None:
+            loss_seg += self.aux_head.get_loss()
         loss_rpn, tb_dict = self.dense_head.get_loss()
         tb_dict = {
             'loss_rpn': loss_rpn.item(),

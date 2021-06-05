@@ -61,7 +61,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
     requires_grad = cfg_.pop('requires_grad', True)
     layer = nn.BatchNorm2d(num_features, eps=1e-5)
     if layer_type == 'SyncBN':
-        layer = nn.SyncBatchNorm(num_features,1e-5)
+        layer = nn.SyncBatchNorm(num_features, eps=1e-5)
 
     for param in layer.parameters():
         param.requires_grad = requires_grad

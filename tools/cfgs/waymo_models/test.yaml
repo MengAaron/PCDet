@@ -33,7 +33,7 @@ MODEL:
     NAME: RRCNN
 
     BACKBONE_RANGE:
-        NAME: ResNet
+        NAME: ResNetV1c
         NUM_INPUT_CHANNELS: 6
 
     SEG_HEAD:

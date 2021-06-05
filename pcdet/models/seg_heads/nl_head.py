@@ -31,7 +31,7 @@ class _NonLocalNd(nn.Module):
                  reduction=2,
                  use_scale=True,
                  conv_cfg=None,
-                 norm_cfg=None,
+                 norm_cfg=dict(type='BN', requires_grad=True),
                  mode='embedded_gaussian',
                  **kwargs):
         super(_NonLocalNd, self).__init__()
@@ -39,6 +39,7 @@ class _NonLocalNd(nn.Module):
         self.reduction = reduction
         self.use_scale = use_scale
         self.inter_channels = max(in_channels // reduction, 1)
+        self.norm_cfg = norm_cfg
         self.mode = mode
 
         if mode not in [

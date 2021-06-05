@@ -499,7 +499,7 @@ class ResNet(nn.Module):
 
         self.feat_dim = self.block.expansion * base_channels * 2 ** (
                 len(self.stage_blocks) - 1)
-        self.init_weights(pretrained=True)
+        self.init_weights(pretrained='/home/m50017341/code/OpenPCDet/ckpt/resnet50_v1c-2cccc1ad.pth')
 
     def get_output_feature_dim(self):
         return self.feat_dim
@@ -586,7 +586,7 @@ class ResNet(nn.Module):
                 Defaults to None.
         """
         if isinstance(pretrained, str):
-            torch.load('/home/m50017341/code/OpenPCDet/ckpt/resnet50_v1c-2cccc1ad.pth')
+            torch.load(pretrained)
             # load_checkpoint(self, pretrained, strict=False, logger=logger)
         elif pretrained is None:
             for m in self.modules():

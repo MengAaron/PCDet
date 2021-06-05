@@ -468,6 +468,20 @@ class FCNHead(nn.Module):
         output = self.conv_seg(feat)
         return output
 
+    def clip_sigmoid(self, x, eps=1e-4):
+        """Sigmoid function for input feature.
+
+        Args:
+            x (torch.Tensor): Input feature map with the shape of [B, N, H, W].
+            eps (float): Lower bound of the range to be clamped to. Defaults
+                to 1e-4.
+
+        Returns:
+            torch.Tensor: Feature map after sigmoid.
+        """
+        y = torch.clamp(x.sigmoid_(), min=eps, max=1 - eps)
+        return y
+
     def forward(self, batch_dict):
         """Forward function."""
 
@@ -479,6 +493,7 @@ class FCNHead(nn.Module):
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
             align_corners=self.align_corners)
+        seg_pred = self.clip_sigmoid(seg_pred)
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
@@ -535,8 +550,10 @@ class NLHead(FCNHead):
         seg_pred = resize(output, [64, 2650], mode='bilinear',
             align_corners=self.align_corners)
         seg_pred = torch.squeeze(seg_pred, dim=1)
+        seg_pred = self.clip_sigmoid(seg_pred)
         batch_dict['seg_pred'] = seg_pred
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
         return batch_dict
+

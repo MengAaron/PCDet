@@ -73,6 +73,7 @@ class Detector3DTemplate(nn.Module):
             model_cfg=self.model_cfg.SEG_HEAD,
             in_channels=model_info_dict['num_point_features'],
         )
+        model_info_dict['num_point_features'] = seg_head_module.get_output_feature_dim()
         model_info_dict['module_list'].append(seg_head_module)
         return seg_head_module, model_info_dict
 

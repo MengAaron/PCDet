@@ -530,6 +530,10 @@ class NLHead(FCNHead):
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,
             mode=self.mode)
+        self.out_dim = self.channels
+
+    def get_output_feature_dim(self):
+        return self.out_dim
 
 
 

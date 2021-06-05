@@ -333,8 +333,8 @@ class FCNHead(nn.Module):
         self.num_convs = num_convs
         self.concat_input = concat_input
         self.kernel_size = kernel_size
-        self.conv_seg = nn.Conv2d(in_channels, 1, kernel_size=1)
-        self.in_channels = in_channels
+        self.conv_seg = nn.Conv2d(self.in_channels, 1, kernel_size=1)
+        # self.in_channels = in_channels
         self.channels = model_cfg.channels
         self.norm_cfg = norm_cfg
         if dropout_ratio > 0:

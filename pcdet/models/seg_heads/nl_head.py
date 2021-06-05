@@ -462,7 +462,7 @@ class FCNHead(nn.Module):
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']
         target = self.forward_ret_dict['range_mask']
-        return self.crit(input, target, self.weights)
+        return F.cross_entropy(input, target, reduction='none') * self.weights
 
     def cls_seg(self, feat):
         """Classify each pixel."""

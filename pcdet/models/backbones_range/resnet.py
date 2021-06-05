@@ -300,6 +300,11 @@ class Bottleneck(nn.Module):
 
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
+        if stride != 1 or inplanes != planes * self.expansion:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inplanes, planes * self.expansion, stride=stride, kernel_size=1, bias=False),
+                nn.BatchNorm2d(planes * self.expansion)
+            )
 
 
     @property
@@ -340,7 +345,7 @@ class Bottleneck(nn.Module):
             if self.downsample is not None:
                 identity = self.downsample(x)
 
-            out += identity
+            out += self.shortcut(identity)
 
             return out
 

@@ -597,10 +597,11 @@ class ResNet(nn.Module):
         else:
             raise TypeError('pretrained must be a str or None')
 
-    def forward(self, x):
+    def forward(self, batch_dict):
         """Forward function."""
         import pudb
         pudb.set_trace()
+        x = batch_dict['range_image']
         if self.deep_stem:
             x = self.stem(x)
         else:

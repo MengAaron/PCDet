@@ -376,7 +376,7 @@ class FCNHead(nn.Module):
             self.convs = nn.Sequential(*convs)
         if self.concat_input:
             self.conv_cat = nn.Sequential(*[nn.Conv2d(
-                    self.in_channels + self.channels[-1],
+                    self.in_channels + self.channels[0],
                     self.channels[-1],
                     kernel_size=kernel_size,
                     padding=kernel_size // 2,

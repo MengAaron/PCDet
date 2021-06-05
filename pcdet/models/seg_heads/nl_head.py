@@ -385,7 +385,7 @@ class FCNHead(nn.Module):
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
         self.inter_conv = nn.Sequential(
-            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg,32)[1], nn.ReLU()])
+            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
         self.build_loss()
 
     def _init_inputs(self, in_channels, in_index, input_transform):
@@ -541,7 +541,7 @@ class NLHead(FCNHead):
             mode=self.mode)
         self.weights = 1.0
         self.out_dim = 32
-        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels,32,1),build_norm_layer(self.norm_cfg,32)[1],nn.ReLU()])
+        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg,32)[1],nn.ReLU()])
 
     def get_output_feature_dim(self):
         return self.out_dim

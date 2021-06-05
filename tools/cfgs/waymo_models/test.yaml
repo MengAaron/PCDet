@@ -30,7 +30,7 @@ DATA_CONFIG:
 
 
 MODEL:
-    NAME: RRCNN
+    NAME: RangeTemplate
 
     BACKBONE_RANGE:
         NAME: ResNetV1c

@@ -319,7 +319,7 @@ class FCNHead(nn.Module):
         dilation (int): The dilation rate for convs in the head. Default: 1.
     """
 
-    def __init__(self, model_cfg, in_channels, channels,
+    def __init__(self, model_cfg, in_channels,
                  num_convs=2,
                  kernel_size=3,
                  concat_input=True,
@@ -332,7 +332,7 @@ class FCNHead(nn.Module):
         self.concat_input = concat_input
         self.kernel_size = kernel_size
         self.conv_seg = nn.Conv2d(in_channels, 1, kernel_size=1)
-        self.channels = channels
+        self.channels = model_cfg.channels
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
         else:

@@ -465,7 +465,7 @@ class FCNHead(nn.Module):
         target0 = 1 - self.forward_ret_dict['range_mask']
         target = torch.stack([target1, target0], dim=1)
 
-        return F.binary_cross_entropy(F.sigmoid(input), target.long(), reduction='none') * self.weights
+        return F.binary_cross_entropy(F.sigmoid(input), target, reduction='none') * self.weights
 
     def cls_seg(self, feat):
         """Classify each pixel."""

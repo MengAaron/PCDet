@@ -461,11 +461,11 @@ class FCNHead(nn.Module):
 
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']
-        target1 = self.forward_ret_dict['range_mask']
+        target = self.forward_ret_dict['range_mask']
         # target0 = 1 - self.forward_ret_dict['range_mask']
         # target = torch.stack([target1, target0], dim=1)
 
-        return F.cross_entropy(input, target1, reduction='none') * self.weights
+        return F.cross_entropy(input, target.long(), reduction='none') * self.weights
 
     def cls_seg(self, feat):
         """Classify each pixel."""
@@ -575,7 +575,7 @@ class NLHead(FCNHead):
         # import pudb
         # pudb.set_trace()
         seg_pred = self.clip_sigmoid(seg_pred)
-        batch_dict['seg_pred'] = seg_pred[:, 0]
-        # batch_dict['seg_pred'] = seg_pred
+        # batch_dict['seg_pred'] = seg_pred[:, 0]
+        batch_dict['seg_pred'] = seg_pred
 
         return batch_dict

@@ -7,7 +7,7 @@ class RangeTemplate(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
         super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
         self.module_list = self.build_networks()
-        self.time = np.zeros(len(self.module_list)+1)
+        self.time = np.zeros(len(self.module_list) + 1)
         self.iter = 0
 
     def forward(self, batch_dict):
@@ -39,23 +39,40 @@ class RangeTemplate(Detector3DTemplate):
         loss_config = self.model_cfg.get('LOSS_CONFIG', None)
         if loss_config is not None:
             weight_dict = loss_config['LOSS_WEIGHTS']
-            seg_weight = weight_dict['seg_weight']
-            rpn_weight = weight_dict['rpn_weight']
+            seg_weight = weight_dict.get('seg_weight', 1)
+            rpn_weight = weight_dict.get('rpn_weight', 1)
+            point_weight = weight_dict.get('point_weight', 1)
+            rcnn_weight = weight_dict.get('rcnn_weight', 1)
         else:
             seg_weight = 1
+            point_weight = 1
             rpn_weight = 1
+            rcnn_weight = 1
         disp_dict = {}
 
-        loss_seg = self.seg_head.get_loss()
-        if self.aux_head:
-            loss_seg +=self.aux_head.get_loss()
-        loss_rpn, tb_dict = self.dense_head.get_loss()
-        tb_dict = {
-            'loss_rpn': loss_rpn.item(),
-            **tb_dict
-        }
+        loss = 0
+        tb_dict = {}
+        if self.seg_head is not None:
+            loss_seg = self.seg_head.get_loss()
+            loss += seg_weight * seg_weight
+            if self.aux_head is not None:
+                loss += self.aux_head.get_loss() * seg_weight
 
-        loss = loss_seg * seg_weight + loss_rpn * rpn_weight
+        if self.point_head is not None:
+            loss_point, tb_dict = self.dense_head.get_loss(tb_dict)
+            loss += loss_point * point_weight
+
+        if self.dense_head is not None:
+            loss_rpn, tb_dict = self.dense_head.get_loss(tb_dict)
+            loss += loss_rpn * rpn_weight
+            tb_dict = {
+                'loss_rpn': loss_rpn.item(),
+                **tb_dict
+            }
+
+        if self.roi_head is not None:
+            loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
+            loss += rcnn_weight * loss_rcnn
         return loss, tb_dict, disp_dict
 
 
@@ -106,6 +123,7 @@ class RRCNN(RangeTemplate):
 
         loss = loss_seg * seg_weight + loss_rpn * rpn_weight + rcnn_weight * loss_rcnn
         return loss, tb_dict, disp_dict
+
 
 class RPVRCNN(RangeTemplate):
     def __init__(self, model_cfg, num_class, dataset):

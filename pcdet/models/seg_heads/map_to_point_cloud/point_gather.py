@@ -48,8 +48,8 @@ class PointGather(nn.Module):
         foreground_voxels = []
         foreground_voxel_coords = []
         foreground_voxel_num_points = []
-        # import pudb
-        # pudb.set_trace()
+        import pudb
+        pudb.set_trace()
         # analyze(batch_dict)
 
         for batch_idx in range(batch_size):
@@ -57,6 +57,7 @@ class PointGather(nn.Module):
             if len(seg_mask.shape) == 3:
                 cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
             else:
+
                 # first feature map is foreground
                 cur_seg_mask = (seg_mask[batch_idx].argmax(dim=0).bool())
                 cur_seg_mask &= seg_mask[batch_idx][1] >= self.foreground_threshold

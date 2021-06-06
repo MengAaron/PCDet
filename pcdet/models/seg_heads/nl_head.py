@@ -454,7 +454,7 @@ class FCNHead(nn.Module):
         import pudb
         pudb.set_trace()
 
-        return F.cross_entropy(input, target.long(), reduction='none') * self.weights
+        return F.cross_entropy(input, target.long()) * self.weights
 
     def cls_seg(self, feat):
         """Classify each pixel."""

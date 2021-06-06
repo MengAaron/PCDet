@@ -44,7 +44,7 @@ class _NonLocalNd(nn.Module):
         self.mode = mode
 
         if mode not in [
-                'gaussian', 'embedded_gaussian', 'dot_product', 'concatenation'
+            'gaussian', 'embedded_gaussian', 'dot_product', 'concatenation'
         ]:
             raise ValueError("Mode should be in 'gaussian', 'concatenation', "
                              f"'embedded_gaussian' or 'dot_product', but got "
@@ -57,26 +57,25 @@ class _NonLocalNd(nn.Module):
             self.inter_channels,
             kernel_size=1)
         self.conv_out = nn.Sequential(*[nn.Conv2d(self.inter_channels,
-            self.in_channels,
-            kernel_size=1), build_norm_layer(self.norm_cfg, self.in_channels)[1]])
-
+                                                  self.in_channels,
+                                                  kernel_size=1), build_norm_layer(self.norm_cfg, self.in_channels)[1]])
 
         if self.mode != 'gaussian':
             self.theta = nn.Conv2d(self.in_channels,
-                self.inter_channels,
-                kernel_size=1)
+                                   self.inter_channels,
+                                   kernel_size=1)
 
             self.phi = nn.Conv2d(self.in_channels,
-                self.inter_channels,
-                kernel_size=1)
+                                 self.inter_channels,
+                                 kernel_size=1)
 
         if self.mode == 'concatenation':
             self.concat_project = nn.Sequential(*[nn.Conv2d(self.inter_channels * 2,
-                1,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-                bias=False), nn.ReLU()])
+                                                            1,
+                                                            kernel_size=1,
+                                                            stride=1,
+                                                            padding=0,
+                                                            bias=False), nn.ReLU()])
 
         self.init_weights(**kwargs)
 
@@ -109,7 +108,7 @@ class _NonLocalNd(nn.Module):
         pairwise_weight = torch.matmul(theta_x, phi_x)
         if self.use_scale:
             # theta_x.shape[-1] is `self.inter_channels`
-            pairwise_weight /= theta_x.shape[-1]**0.5
+            pairwise_weight /= theta_x.shape[-1] ** 0.5
         pairwise_weight = pairwise_weight.softmax(dim=-1)
         return pairwise_weight
 
@@ -224,6 +223,7 @@ class NonLocal2d(_NonLocalNd):
             else:
                 self.phi = max_pool_layer
 
+
 def kaiming_init(module,
                  a=0,
                  mode='fan_out',
@@ -247,6 +247,7 @@ def constant_init(module, val, bias=0):
         nn.init.constant_(module.weight, val)
     if hasattr(module, 'bias') and module.bias is not None:
         nn.init.constant_(module.bias, bias)
+
 
 def normal_init(module, mean=0, std=1, bias=0):
     if hasattr(module, 'weight') and module.weight is not None:
@@ -288,7 +289,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
     requires_grad = cfg_.pop('requires_grad', True)
     layer = nn.BatchNorm2d(num_features, eps=1e-5)
     if layer_type == 'SyncBN':
-        layer= nn.SyncBatchNorm(num_features, eps=1e-5)
+        layer = nn.SyncBatchNorm(num_features, eps=1e-5)
         # layer._specify_ddp_gpu_num(1)
 
     for param in layer.parameters():
@@ -296,13 +297,13 @@ def build_norm_layer(cfg, num_features, postfix=''):
 
     return name, layer
 
+
 def resize(input,
            size=None,
            scale_factor=None,
            mode='nearest',
            align_corners=None,
            warning=True):
-
     return F.interpolate(input, size, scale_factor, mode, align_corners)
 
 
@@ -326,7 +327,7 @@ class FCNHead(nn.Module):
                  dilation=1,
                  dropout_ratio=0.1,
                  norm_cfg=dict(type='BN', requires_grad=True),
-                 input_transform=None,align_corners=False,
+                 input_transform=None, align_corners=False,
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
@@ -351,25 +352,23 @@ class FCNHead(nn.Module):
         # if num_convs == 0:
         #     assert self.in_channels == self.channels[0]
 
-
-
         conv_padding = (kernel_size // 2) * dilation
         convs = []
         convs.append(nn.Conv2d(
-                self.in_channels,
-                self.channels,
-                kernel_size=kernel_size,
-                padding=conv_padding,
-                dilation=dilation))
+            self.in_channels,
+            self.channels,
+            kernel_size=kernel_size,
+            padding=conv_padding,
+            dilation=dilation))
         convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
         convs.append(nn.ReLU())
         for i in range(num_convs - 1):
             convs.append(nn.Conv2d(
-                    self.channels,
-                    self.channels,
-                    kernel_size=kernel_size,
-                    padding=conv_padding,
-                    dilation=dilation))
+                self.channels,
+                self.channels,
+                kernel_size=kernel_size,
+                padding=conv_padding,
+                dilation=dilation))
             convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
             convs.append(nn.ReLU())
         if num_convs == 0:
@@ -378,11 +377,11 @@ class FCNHead(nn.Module):
             self.convs = nn.Sequential(*convs)
         if self.concat_input:
             self.conv_cat = nn.Sequential(*[nn.Conv2d(
-                    self.in_channels + self.channels,
-                    self.channels,
-                    kernel_size=kernel_size,
-                    padding=kernel_size // 2,
-                    dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
+                self.in_channels + self.channels,
+                self.channels,
+                kernel_size=kernel_size,
+                padding=kernel_size // 2,
+                dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
         self.inter_conv = nn.Sequential(
             *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
@@ -500,14 +499,13 @@ class FCNHead(nn.Module):
                                               align_corners=self.align_corners)
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
-            align_corners=self.align_corners)
+                          align_corners=self.align_corners)
 
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
         # seg_pred = self.clip_sigmoid(seg_pred)
         return batch_dict
-
 
 
 class NLHead(FCNHead):
@@ -541,12 +539,11 @@ class NLHead(FCNHead):
             mode=self.mode)
         self.weights = 1.0
         self.out_dim = 32
-        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg,32)[1],nn.ReLU()])
+        self.inter_conv = nn.Sequential(
+            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
 
     def get_output_feature_dim(self):
         return self.out_dim
-
-
 
     def forward(self, batch_dict):
         """Forward function."""
@@ -566,7 +563,7 @@ class NLHead(FCNHead):
                                               align_corners=self.align_corners)
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
-            align_corners=self.align_corners)
+                          align_corners=self.align_corners)
 
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
@@ -575,7 +572,7 @@ class NLHead(FCNHead):
         seg_pred = self.clip_sigmoid(seg_pred)
         # import pudb
         # pudb.set_trace()
-        batch_dict['seg_pred'] = seg_pred[:, 0]
+        # batch_dict['seg_pred'] = seg_pred[:, 0]
+        batch_dict['seg_pred'] = seg_pred
 
         return batch_dict
-

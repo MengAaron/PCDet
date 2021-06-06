@@ -6,12 +6,10 @@ from ...utils import loss_utils
 
 class _NonLocalNd(nn.Module):
     """Basic Non-local module.
-
     This module is proposed in
     "Non-local Neural Networks"
     Paper reference: https://arxiv.org/abs/1711.07971
     Code reference: https://github.com/AlexHex7/Non-local_pytorch
-
     Args:
         in_channels (int): Channels of the input feature map.
         reduction (int): Channel reduction ratio. Default: 2.
@@ -44,7 +42,7 @@ class _NonLocalNd(nn.Module):
         self.mode = mode
 
         if mode not in [
-            'gaussian', 'embedded_gaussian', 'dot_product', 'concatenation'
+                'gaussian', 'embedded_gaussian', 'dot_product', 'concatenation'
         ]:
             raise ValueError("Mode should be in 'gaussian', 'concatenation', "
                              f"'embedded_gaussian' or 'dot_product', but got "
@@ -57,25 +55,26 @@ class _NonLocalNd(nn.Module):
             self.inter_channels,
             kernel_size=1)
         self.conv_out = nn.Sequential(*[nn.Conv2d(self.inter_channels,
-                                                  self.in_channels,
-                                                  kernel_size=1), build_norm_layer(self.norm_cfg, self.in_channels)[1]])
+            self.in_channels,
+            kernel_size=1), build_norm_layer(self.norm_cfg, self.in_channels)[1]])
+
 
         if self.mode != 'gaussian':
             self.theta = nn.Conv2d(self.in_channels,
-                                   self.inter_channels,
-                                   kernel_size=1)
+                self.inter_channels,
+                kernel_size=1)
 
             self.phi = nn.Conv2d(self.in_channels,
-                                 self.inter_channels,
-                                 kernel_size=1)
+                self.inter_channels,
+                kernel_size=1)
 
         if self.mode == 'concatenation':
             self.concat_project = nn.Sequential(*[nn.Conv2d(self.inter_channels * 2,
-                                                            1,
-                                                            kernel_size=1,
-                                                            stride=1,
-                                                            padding=0,
-                                                            bias=False), nn.ReLU()])
+                1,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False), nn.ReLU()])
 
         self.init_weights(**kwargs)
 
@@ -108,7 +107,7 @@ class _NonLocalNd(nn.Module):
         pairwise_weight = torch.matmul(theta_x, phi_x)
         if self.use_scale:
             # theta_x.shape[-1] is `self.inter_channels`
-            pairwise_weight /= theta_x.shape[-1] ** 0.5
+            pairwise_weight /= theta_x.shape[-1]**0.5
         pairwise_weight = pairwise_weight.softmax(dim=-1)
         return pairwise_weight
 
@@ -193,7 +192,6 @@ class _NonLocalNd(nn.Module):
 
 class NonLocal2d(_NonLocalNd):
     """2D Non-local module.
-
     Args:
         in_channels (int): Same as `NonLocalND`.
         sub_sample (bool): Whether to apply max pooling after pairwise
@@ -223,7 +221,6 @@ class NonLocal2d(_NonLocalNd):
             else:
                 self.phi = max_pool_layer
 
-
 def kaiming_init(module,
                  a=0,
                  mode='fan_out',
@@ -248,7 +245,6 @@ def constant_init(module, val, bias=0):
     if hasattr(module, 'bias') and module.bias is not None:
         nn.init.constant_(module.bias, bias)
 
-
 def normal_init(module, mean=0, std=1, bias=0):
     if hasattr(module, 'weight') and module.weight is not None:
         nn.init.normal_(module.weight, mean, std)
@@ -258,17 +254,14 @@ def normal_init(module, mean=0, std=1, bias=0):
 
 def build_norm_layer(cfg, num_features, postfix=''):
     """Build normalization layer.
-
     Args:
         cfg (dict): The norm layer config, which should contain:
-
             - type (str): Layer type.
             - layer args: Args needed to instantiate a norm layer.
             - requires_grad (bool, optional): Whether stop gradient updates.
         num_features (int): Number of input channels.
         postfix (int | str): The postfix to be appended into norm abbreviation
             to create named layer.
-
     Returns:
         (str, nn.Module): The first element is the layer name consisting of
             abbreviation and postfix, e.g., bn1, gn. The second element is the
@@ -289,7 +282,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
     requires_grad = cfg_.pop('requires_grad', True)
     layer = nn.BatchNorm2d(num_features, eps=1e-5)
     if layer_type == 'SyncBN':
-        layer = nn.SyncBatchNorm(num_features, eps=1e-5)
+        layer= nn.SyncBatchNorm(num_features, eps=1e-5)
         # layer._specify_ddp_gpu_num(1)
 
     for param in layer.parameters():
@@ -297,21 +290,19 @@ def build_norm_layer(cfg, num_features, postfix=''):
 
     return name, layer
 
-
 def resize(input,
            size=None,
            scale_factor=None,
            mode='nearest',
            align_corners=None,
            warning=True):
+
     return F.interpolate(input, size, scale_factor, mode, align_corners)
 
 
 class FCNHead(nn.Module):
     """Fully Convolution Networks for Semantic Segmentation.
-
     This head is implemented of `FCNNet <https://arxiv.org/abs/1411.4038>`_.
-
     Args:
         num_convs (int): Number of convs in the head. Default: 2.
         kernel_size (int): The kernel size for convs in the head. Default: 3.
@@ -327,7 +318,7 @@ class FCNHead(nn.Module):
                  dilation=1,
                  dropout_ratio=0.1,
                  norm_cfg=dict(type='BN', requires_grad=True),
-                 input_transform=None, align_corners=False,
+                 input_transform=None,align_corners=False,
                  **kwargs):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
@@ -352,23 +343,25 @@ class FCNHead(nn.Module):
         # if num_convs == 0:
         #     assert self.in_channels == self.channels[0]
 
+
+
         conv_padding = (kernel_size // 2) * dilation
         convs = []
         convs.append(nn.Conv2d(
-            self.in_channels,
-            self.channels,
-            kernel_size=kernel_size,
-            padding=conv_padding,
-            dilation=dilation))
-        convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
-        convs.append(nn.ReLU())
-        for i in range(num_convs - 1):
-            convs.append(nn.Conv2d(
-                self.channels,
+                self.in_channels,
                 self.channels,
                 kernel_size=kernel_size,
                 padding=conv_padding,
                 dilation=dilation))
+        convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
+        convs.append(nn.ReLU())
+        for i in range(num_convs - 1):
+            convs.append(nn.Conv2d(
+                    self.channels,
+                    self.channels,
+                    kernel_size=kernel_size,
+                    padding=conv_padding,
+                    dilation=dilation))
             convs.append(build_norm_layer(self.norm_cfg, self.channels)[1])
             convs.append(nn.ReLU())
         if num_convs == 0:
@@ -377,11 +370,11 @@ class FCNHead(nn.Module):
             self.convs = nn.Sequential(*convs)
         if self.concat_input:
             self.conv_cat = nn.Sequential(*[nn.Conv2d(
-                self.in_channels + self.channels,
-                self.channels,
-                kernel_size=kernel_size,
-                padding=kernel_size // 2,
-                dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
+                    self.in_channels + self.channels,
+                    self.channels,
+                    kernel_size=kernel_size,
+                    padding=kernel_size // 2,
+                    dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
         self.inter_conv = nn.Sequential(
             *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
@@ -389,12 +382,10 @@ class FCNHead(nn.Module):
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.
-
         The in_channels, in_index and input_transform must match.
         Specifically, when input_transform is None, only single feature map
         will be selected. So in_channels and in_index must be of type int.
         When input_transform
-
         Args:
             in_channels (int|Sequence[int]): Input channels.
             in_index (int|Sequence[int]): Input feature index.
@@ -427,10 +418,8 @@ class FCNHead(nn.Module):
 
     def _transform_inputs(self, inputs):
         """Transform inputs for decoder.
-
         Args:
             inputs (list[Tensor]): List of multi-level img features.
-
         Returns:
             Tensor: The transformed inputs
         """
@@ -462,8 +451,6 @@ class FCNHead(nn.Module):
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']
         target = self.forward_ret_dict['range_mask']
-        # target0 = 1 - self.forward_ret_dict['range_mask']
-        # target = torch.stack([target1, target0], dim=1)
 
         return F.cross_entropy(input, target.long(), reduction='none') * self.weights
 
@@ -476,12 +463,10 @@ class FCNHead(nn.Module):
 
     def clip_sigmoid(self, x, eps=1e-4):
         """Sigmoid function for input feature.
-
         Args:
             x (torch.Tensor): Input feature map with the shape of [B, N, H, W].
             eps (float): Lower bound of the range to be clamped to. Defaults
                 to 1e-4.
-
         Returns:
             torch.Tensor: Feature map after sigmoid.
         """
@@ -501,7 +486,7 @@ class FCNHead(nn.Module):
                                               align_corners=self.align_corners)
         output = self.cls_seg(output)
         seg_pred = resize(output, [64, 2650], mode='bilinear',
-                          align_corners=self.align_corners)
+            align_corners=self.align_corners)
 
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
@@ -510,12 +495,11 @@ class FCNHead(nn.Module):
         return batch_dict
 
 
+
 class NLHead(FCNHead):
     """Non-local Neural Networks.
-
     This head is the implementation of `NLNet
     <https://arxiv.org/abs/1711.07971>`_.
-
     Args:
         reduction (int): Reduction factor of projection transform. Default: 2.
         use_scale (bool): Whether to scale pairwise_weight by
@@ -540,12 +524,13 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
         self.weights = 1.0
-        self.point_dim = 32
-        self.inter_conv = nn.Sequential(
-            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
+        self.out_dim = 32
+        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg,32)[1],nn.ReLU()])
 
     def get_output_point_feature_dim(self):
-        return self.point_dim
+        return self.out_dim
+
+
 
     def forward(self, batch_dict):
         """Forward function."""
@@ -574,6 +559,6 @@ class NLHead(FCNHead):
         seg_pred = self.clip_sigmoid(seg_pred)
         # import pudb
         # pudb.set_trace()
-        batch_dict['seg_pred'] = seg_pred[:, 1]
+        batch_dict['seg_pred'] = seg_pred[:, 0]
 
         return batch_dict

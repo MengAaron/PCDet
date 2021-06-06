@@ -569,9 +569,10 @@ class NLHead(FCNHead):
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']
 
-        seg_pred = self.clip_sigmoid(seg_pred)
+
         # import pudb
         # pudb.set_trace()
+        # seg_pred = self.clip_sigmoid(seg_pred)
         # batch_dict['seg_pred'] = seg_pred[:, 0]
         batch_dict['seg_pred'] = seg_pred
 

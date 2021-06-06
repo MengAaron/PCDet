@@ -61,7 +61,7 @@ class Detector3DTemplate(nn.Module):
             point_cloud_range=model_info_dict['point_cloud_range'],
             voxel_size=model_info_dict['voxel_size']
         )
-        model_info_dict['num_point_features'] = backbone_range_module.get_output_feature_dim()
+        model_info_dict['num_range_features'] = backbone_range_module.get_output_feature_dim()
         model_info_dict['module_list'].append(backbone_range_module)
         return backbone_range_module, model_info_dict
 
@@ -71,9 +71,9 @@ class Detector3DTemplate(nn.Module):
 
         seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](
             model_cfg=self.model_cfg.SEG_HEAD,
-            in_channels=model_info_dict['num_point_features'],
+            in_channels=model_info_dict['num_range_features'],
         )
-        model_info_dict['num_point_features'] = seg_head_module.get_output_feature_dim()
+        model_info_dict['num_point_features'] = seg_head_module.get_output_point_feature_dim()
         model_info_dict['module_list'].append(seg_head_module)
         return seg_head_module, model_info_dict
 
@@ -83,7 +83,7 @@ class Detector3DTemplate(nn.Module):
 
         seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](
             model_cfg=self.model_cfg.SEG_HEAD,
-            in_channels=2048,
+            in_channels=model_info_dict['num_range_features'],
         )
         model_info_dict['module_list'].append(seg_head_module)
         return seg_head_module, model_info_dict

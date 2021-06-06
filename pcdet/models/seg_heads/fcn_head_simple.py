@@ -10,6 +10,10 @@ class FCNHeadSimple(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=1, kernel_size=1)
         self.build_loss()
         self.forward_ret_dict = {}
+        self.in_channels = in_channels
+
+    def get_output_point_feature_dim(self):
+        return self.in_channels
 
     def forward(self, batch_dict):
         range_feature = batch_dict['range_features']

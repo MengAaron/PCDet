@@ -540,12 +540,12 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
         self.weights = 1.0
-        self.out_dim = 32
+        self.range_dim = 32
         self.inter_conv = nn.Sequential(
             *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
 
-    def get_output_feature_dim(self):
-        return self.out_dim
+    def get_output_range_feature_dim(self):
+        return self.range_dim
 
     def forward(self, batch_dict):
         """Forward function."""

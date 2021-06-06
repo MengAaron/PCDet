@@ -54,7 +54,7 @@ class RangeTemplate(Detector3DTemplate):
         tb_dict = {}
         if self.seg_head is not None:
             loss_seg = self.seg_head.get_loss()
-            loss += seg_weight * seg_weight
+            loss += seg_weight * loss_seg
             if self.aux_head is not None:
                 loss += self.aux_head.get_loss() * seg_weight
 

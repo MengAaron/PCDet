@@ -58,17 +58,17 @@ class RangeTemplate(Detector3DTemplate):
             if self.aux_head is not None:
                 loss += self.aux_head.get_loss() * seg_weight
 
-        if self.point_head is not None:
-            loss_point, tb_dict = self.dense_head.get_loss(tb_dict)
-            loss += loss_point * point_weight
-
         if self.dense_head is not None:
-            loss_rpn, tb_dict = self.dense_head.get_loss(tb_dict)
+            loss_rpn, tb_dict = self.dense_head.get_loss()
             loss += loss_rpn * rpn_weight
             tb_dict = {
                 'loss_rpn': loss_rpn.item(),
                 **tb_dict
             }
+
+        if self.point_head is not None:
+            loss_point, tb_dict = self.dense_head.get_loss(tb_dict)
+            loss += loss_point * point_weight
 
         if self.roi_head is not None:
             loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)

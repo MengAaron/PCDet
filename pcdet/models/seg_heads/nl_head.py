@@ -463,7 +463,7 @@ class FCNHead(nn.Module):
         input = self.forward_ret_dict['seg_pred']
         target = self.forward_ret_dict['range_mask']
 
-        return F.cross_entropy(input, target.long(), reduction='none') * self.weights
+        return F.binary_cross_entropy(F.sigmoid(input), target.long(), reduction='none') * self.weights
 
     def cls_seg(self, feat):
         """Classify each pixel."""

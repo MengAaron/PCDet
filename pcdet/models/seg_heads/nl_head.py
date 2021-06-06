@@ -561,6 +561,6 @@ class NLHead(FCNHead):
         seg_pred = self.clip_sigmoid(seg_pred)
         # import pudb
         # pudb.set_trace()
-        batch_dict['seg_pred'] = seg_pred[:,1]
+        batch_dict['seg_pred'] = seg_pred
 
         return batch_dict

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze
 
 
@@ -57,8 +56,7 @@ class PointGather(nn.Module):
             if len(seg_mask.shape) == 3:
                 cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
             else:
-                cur_seg_mask = F.softmax(seg_mask[batch_idx], dim=0)[1] >= self.foreground_threshold
-                # cur_seg_mask = seg_mask[batch_idx].argmax(dim=0)
+                cur_seg_mask = seg_mask[batch_idx].argmax(dim=0)
             cur_seg_mask = torch.flatten(cur_seg_mask)
 
             # points

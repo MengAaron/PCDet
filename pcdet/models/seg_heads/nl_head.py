@@ -461,7 +461,9 @@ class FCNHead(nn.Module):
 
     def get_loss(self):
         input = self.forward_ret_dict['seg_pred']
-        target = self.forward_ret_dict['range_mask']
+        target1 = self.forward_ret_dict['range_mask']
+        target0 = 1 - self.forward_ret_dict['range_mask']
+        target = torch.stack([target1, target0], dim=1)
 
         return F.binary_cross_entropy(F.sigmoid(input), target.long(), reduction='none') * self.weights
 

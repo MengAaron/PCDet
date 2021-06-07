@@ -25,6 +25,8 @@ class AnchorHeadTemplate(nn.Module):
         )
 
         anchor_generator_cfg = self.model_cfg.ANCHOR_GENERATOR_CONFIG
+        import pudb
+        pudb.set_trace()
         anchors, self.num_anchors_per_location = self.generate_anchors(
             anchor_generator_cfg, grid_size=grid_size, point_cloud_range=point_cloud_range,
             anchor_ndim=self.box_coder.code_size

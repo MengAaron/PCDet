@@ -329,6 +329,7 @@ class FCNHead(nn.Module):
         self.concat_input = concat_input
         self.kernel_size = kernel_size
         self.channels = model_cfg.channels
+        self.range_image_shape = model_cfg.get('RANGE_IMAGE_SHAPE', [64,2650])
         # if isinstance(self.channels, int):
         #     self.channels = [self.channels] * num_convs
         self.conv_seg = nn.Conv2d(32, 2, kernel_size=1)
@@ -430,7 +431,7 @@ class FCNHead(nn.Module):
                 resize(
                     input=x,
                     # size=inputs[0].shape[2:],
-                    size=[64, 2650],
+                    size=self.range_image_shape,
                     mode='bilinear',
                     align_corners=self.align_corners) for x in inputs
             ]
@@ -484,10 +485,10 @@ class FCNHead(nn.Module):
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
         output = self.inter_conv(output)
-        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
+        batch_dict['range_features'] = resize(output, self.range_image_shape, mode='bilinear',
                                               align_corners=self.align_corners)
         output = self.cls_seg(output)
-        seg_pred = resize(output, [64, 2650], mode='bilinear',
+        seg_pred = resize(output, self.range_image_shape, mode='bilinear',
             align_corners=self.align_corners)
 
         self.forward_ret_dict['seg_pred'] = seg_pred
@@ -548,10 +549,10 @@ class NLHead(FCNHead):
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))
         output = self.inter_conv(output)
-        batch_dict['range_features'] = resize(output, [64, 2650], mode='bilinear',
+        batch_dict['range_features'] = resize(output, self.range_image_shape, mode='bilinear',
                                               align_corners=self.align_corners)
         output = self.cls_seg(output)
-        seg_pred = resize(output, [64, 2650], mode='bilinear',
+        seg_pred = resize(output, self.range_image_shape, mode='bilinear',
             align_corners=self.align_corners)
 
         self.forward_ret_dict['seg_pred'] = seg_pred

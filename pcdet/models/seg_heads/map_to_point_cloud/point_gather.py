@@ -59,16 +59,17 @@ class PointGather(nn.Module):
             else:
                 # first feature map is foreground
                 cur_seg_mask = (seg_mask[batch_idx].argmax(dim=0).bool())
-                print(cur_seg_mask.sum().sum())
-                print(batch_dict['range_mask'][batch_idx].sum().sum())
+                cur_seg_mask |= seg_mask[batch_idx][1] >= self.foreground_threshold
+                # print(cur_seg_mask.sum().sum())
+                # print(batch_dict['range_mask'][batch_idx].sum().sum())
 
             cur_seg_mask = torch.flatten(cur_seg_mask)
 
             # points
             batch_points_mask = points[:, 0] == batch_idx
             this_gt_points = batch_dict['flag_of_pts'][batch_points_mask, 1].sum()
-            print(this_gt_points)
-            print()
+            # print(this_gt_points)
+            # print()
             this_points = points[batch_points_mask, :]
             this_ri_indices = ri_indices[batch_points_mask, :]
             this_ri_indexes = (this_ri_indices[:, 1] * width + this_ri_indices[:, 2]).long()

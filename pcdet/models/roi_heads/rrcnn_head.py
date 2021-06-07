@@ -139,11 +139,11 @@ class RRCNNHead(RoIHeadTemplate):
         pooled_rpn_features_list = []
 
         for bs_idx in range(batch_size):
-            try:
-                bs_mask = (batch_idx == bs_idx)
-            except RuntimeError:
-                import pudb
-                pudb.set_trace()
+            # try:
+            bs_mask = (batch_idx == bs_idx)
+            # except RuntimeError:
+            #     import pudb
+            #     pudb.set_trace()
             cur_point_coords = point_coords[bs_mask]
             # cur_part_features = part_features[bs_mask]
             cur_rpn_features = point_features[bs_mask]

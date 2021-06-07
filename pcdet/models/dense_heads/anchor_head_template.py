@@ -41,8 +41,8 @@ class AnchorHeadTemplate(nn.Module):
             anchor_range=point_cloud_range,
             anchor_generator_config=anchor_generator_cfg
         )
-        import pudb
-        pudb.set_trace()
+        # import pudb
+        # pudb.set_trace()
         feature_map_size = [grid_size[:2] // config['feature_map_stride'] for config in anchor_generator_cfg]
         # feature_map_size = [[(i - 1) // config['feature_map_stride'] + 1 for i in grid_size[:2]] for config in anchor_generator_cfg]
 

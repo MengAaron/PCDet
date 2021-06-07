@@ -137,6 +137,8 @@ class RRCNNHead(RoIHeadTemplate):
 
         # pooled_part_features_list, pooled_rpn_features_list = [], []
         pooled_rpn_features_list = []
+        import pudb
+        pudb.set_trace()
 
         for bs_idx in range(batch_size):
             # try:

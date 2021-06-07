@@ -141,12 +141,13 @@ class RRCNNHead(RoIHeadTemplate):
         # pudb.set_trace()
 
         for bs_idx in range(batch_size):
-            # try:
-            #     bs_mask = (batch_idx == bs_idx)
-            # except RuntimeError:
+            try:
+                bs_mask = (batch_idx == bs_idx)
+            except RuntimeError:
+                continue
             #     import pudb
             #     pudb.set_trace()
-            bs_mask = torch.eq(batch_idx, bs_idx)
+            # bs_mask = torch.eq(batch_idx, bs_idx)
             cur_point_coords = point_coords[bs_mask]
             # cur_part_features = part_features[bs_mask]
             cur_rpn_features = point_features[bs_mask]

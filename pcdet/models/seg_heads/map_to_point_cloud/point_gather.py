@@ -66,6 +66,8 @@ class PointGather(nn.Module):
 
             # points
             batch_points_mask = points[:, 0] == batch_idx
+            this_gt_points = batch_dict['flag_of_pts'][batch_points_mask].sum()
+            print(this_gt_points)
             this_points = points[batch_points_mask, :]
             this_ri_indices = ri_indices[batch_points_mask, :]
             this_ri_indexes = (this_ri_indices[:, 1] * width + this_ri_indices[:, 2]).long()

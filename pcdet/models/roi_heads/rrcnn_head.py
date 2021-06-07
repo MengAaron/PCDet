@@ -141,10 +141,7 @@ class RRCNNHead(RoIHeadTemplate):
         # pudb.set_trace()
 
         for bs_idx in range(batch_size):
-            try:
-                bs_mask = (batch_idx == bs_idx)
-            except RuntimeError:
-                continue
+            bs_mask = (batch_idx == bs_idx)
             #     import pudb
             #     pudb.set_trace()
             # bs_mask = torch.eq(batch_idx, bs_idx)

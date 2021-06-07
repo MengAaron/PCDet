@@ -46,7 +46,7 @@ MODEL:
         reduction: 2
         use_scale: True
         mode: 'embedded_gaussian'
-        num_classes: 1
+        num_classes: 2
         align_corners: False
         loss_decode:
             type: 'CrossEntropyLoss'

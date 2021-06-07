@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze
+from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze,plot_rangeimage
 
 
 class PointGather(nn.Module):

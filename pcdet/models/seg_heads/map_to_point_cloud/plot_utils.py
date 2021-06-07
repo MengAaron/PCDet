@@ -102,3 +102,35 @@ def analyze(batch_dict):
     print("threshold    points_num    recall    precision    f1")
     for i in range(11):
         print("%9.2f    %8.0f    %6.2f    %9.2f    %5.2f" % tuple(global_result[1:].mean(axis=0)[i].tolist()))
+
+
+
+def plot_rangeimage(rangeimage, theta=1, conf='p'):
+    """
+
+    Args:
+        rangeimage:
+        theta: the angle range for front view
+
+    Returns:
+
+    """
+
+    if len(rangeimage.shape) > 2:
+        rangeimage = rangeimage[..., 0]
+    height, width = rangeimage.shape
+    left = int(width * (0.5 - theta / 2))
+    right = int(width * (0.5 + theta / 2))
+    rangeimage = rangeimage[:, left:right]
+    rangeimage = rangeimage / rangeimage.max() * 255
+    # rangeimage[rangeimage == 0] = 1000
+    if conf == 'p':
+        import PIL.Image as image
+        rangeimage = image.fromarray(rangeimage)
+        rangeimage.show()
+    elif conf =='m':
+        import matplotlib.pyplot as plt
+        plt.axis('off')
+        plt.imshow(rangeimage, cmap='jet')
+        # plt.imshow(rangeimage, cmap='terrain')
+        plt.show()

@@ -9,7 +9,7 @@ from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 
 
 class RRCNNHead(RoIHeadTemplate):
-    def __init__(self, input_channels, model_cfg, num_class=1,**kwargs):
+    def __init__(self, input_channels, model_cfg, num_class=1, **kwargs):
         super().__init__(num_class=num_class, model_cfg=model_cfg)
         self.model_cfg = model_cfg
 
@@ -137,11 +137,13 @@ class RRCNNHead(RoIHeadTemplate):
 
         # pooled_part_features_list, pooled_rpn_features_list = [], []
         pooled_rpn_features_list = []
-        import pudb
-        pudb.set_trace()
-        for bs_idx in range(batch_size):
 
-            bs_mask = (batch_idx == bs_idx)
+        for bs_idx in range(batch_size):
+            try:
+                bs_mask = (batch_idx == bs_idx)
+            except RuntimeError:
+                import pudb
+                pudb.set_trace()
             cur_point_coords = point_coords[bs_mask]
             # cur_part_features = part_features[bs_mask]
             cur_rpn_features = point_features[bs_mask]
@@ -193,7 +195,7 @@ class RRCNNHead(RoIHeadTemplate):
         # pooled_part_features, pooled_rpn_features = self.roiaware_pool(batch_dict)
         pooled_rpn_features = self.roiaware_pool(batch_dict)
         # batch_size_rcnn = pooled_part_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
-        batch_size_rcnn =pooled_rpn_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
+        batch_size_rcnn = pooled_rpn_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
 
         # transform to sparse tensors
         sparse_shape = np.array(pooled_rpn_features.shape[1:4], dtype=np.int32)

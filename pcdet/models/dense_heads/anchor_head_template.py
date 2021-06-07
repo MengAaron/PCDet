@@ -43,8 +43,8 @@ class AnchorHeadTemplate(nn.Module):
         )
         # import pudb
         # pudb.set_trace()
-        feature_map_size = [grid_size[:2] // config['feature_map_stride'] for config in anchor_generator_cfg]
-        # feature_map_size = [[(i - 1) // config['feature_map_stride'] + 1 for i in grid_size[:2]] for config in anchor_generator_cfg]
+        # feature_map_size = [grid_size[:2] // config['feature_map_stride'] for config in anchor_generator_cfg]
+        feature_map_size = [[(i - 1) // config['feature_map_stride'] + 1 for i in grid_size[:2]] for config in anchor_generator_cfg]
 
         anchors_list, num_anchors_per_location_list = anchor_generator.generate_anchors(feature_map_size)
 
@@ -250,12 +250,8 @@ class AnchorHeadTemplate(nn.Module):
             anchors = self.anchors
         num_anchors = anchors.view(-1, anchors.shape[-1]).shape[0]
         batch_anchors = anchors.view(1, -1, anchors.shape[-1]).repeat(batch_size, 1, 1)
-        try:
-            batch_cls_preds = cls_preds.view(batch_size, num_anchors, -1).float() \
-                if not isinstance(cls_preds, list) else cls_preds
-        except RuntimeError:
-            import pudb
-            pudb.set_trace()
+        batch_cls_preds = cls_preds.view(batch_size, num_anchors, -1).float() \
+            if not isinstance(cls_preds, list) else cls_preds
         batch_box_preds = box_preds.view(batch_size, num_anchors, -1) if not isinstance(box_preds, list) \
             else torch.cat(box_preds, dim=1).view(batch_size, num_anchors, -1)
         batch_box_preds = self.box_coder.decode_torch(batch_box_preds, batch_anchors)

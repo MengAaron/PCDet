@@ -112,6 +112,7 @@ class PointGather(nn.Module):
         foreground_voxel_num_points = torch.cat(foreground_voxel_num_points, dim=0)
         batch_dict['voxels'] = foreground_voxels
         batch_dict['voxel_coords'] = foreground_voxel_coords
+        print(foreground_voxels[:, 0].max().int().item() + 1)
         batch_dict['voxel_num_points'] = foreground_voxel_num_points
         batch_dict.pop('range_features', None)
         batch_dict.pop('seg_pred', None)

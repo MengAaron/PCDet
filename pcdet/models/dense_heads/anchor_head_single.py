@@ -40,7 +40,6 @@ class AnchorHeadSingle(AnchorHeadTemplate):
 
     def forward(self, data_dict):
         spatial_features_2d = data_dict['spatial_features_2d']
-        print(spatial_features_2d.shape)
 
         cls_preds = self.conv_cls(spatial_features_2d)
         box_preds = self.conv_box(spatial_features_2d)

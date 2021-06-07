@@ -83,7 +83,7 @@ class Detector3DTemplate(nn.Module):
 
         seg_head_module = seg_heads.__all__[self.model_cfg.AUX_HEAD.NAME](
             model_cfg=self.model_cfg.AUX_HEAD,
-            in_channels=model_info_dict['num_range_features'],
+            in_channels=self.model_cfg.AUX_HEAD.in_channels,
         )
         model_info_dict['module_list'].append(seg_head_module)
         return seg_head_module, model_info_dict

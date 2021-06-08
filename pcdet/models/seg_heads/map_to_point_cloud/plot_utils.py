@@ -2,6 +2,7 @@ import numpy as np
 
 from ....datasets.waymo.waymo_utils import plot_pointcloud, plot_pointcloud_with_gt_boxes
 import torch
+
 global_result = np.zeros((1, 11, 5))
 
 
@@ -71,8 +72,13 @@ def analyze(batch_dict):
             f1 = 0
         return points_num, recall, precision, f1
 
-    batch_size, height, width = batch_dict['seg_pred'].shape
-    batch_result = np.zeros((batch_size,11,5))
+    if len(batch_dict['seg_pred'].shape) == 3:
+        batch_size, height, width = batch_dict['seg_pred'].shape
+        seg_mask = batch_dict['seg_pred']
+    else:
+        batch_size, _, height, width = batch_dict['seg_pred'].shape
+        seg_mask = batch_dict['seg_pred'][:, 1]
+    batch_result = np.zeros((batch_size, 11, 5))
     for batch_idx in range(batch_size):
         flag_of_pts = batch_dict['flag_of_pts']
         points = batch_dict['points']
@@ -82,7 +88,7 @@ def analyze(batch_dict):
         this_ri_indexes = (this_ri_indices[:, 1] * width + this_ri_indices[:, 2]).long()
         # target
         this_flag_of_pts = flag_of_pts[batch_points_mask, 1].bool()
-        this_seg_mask = batch_dict['seg_pred'][batch_idx]
+        this_seg_mask = seg_mask[batch_idx]
         for i in range(10):
             threshold = i / 10
             cur_seg_mask = this_seg_mask >= threshold
@@ -90,19 +96,18 @@ def analyze(batch_dict):
             # predict
             this_points_mask = torch.gather(cur_seg_mask, dim=0, index=this_ri_indexes).bool()
             points_num, recall, precision, f1 = eval(this_points_mask, this_flag_of_pts)
-            batch_result[batch_idx,i] = threshold, points_num, recall, precision, f1
+            batch_result[batch_idx, i] = threshold, points_num, recall, precision, f1
 
         this_range_mask = batch_dict['range_mask'][batch_idx]
         this_range_mask = this_range_mask.flatten()
         this_points_mask = torch.gather(this_range_mask, dim=0, index=this_ri_indexes).bool()
         points_num, recall, precision, f1 = eval(this_points_mask, this_flag_of_pts)
-        batch_result[batch_idx,10] = 1, points_num, recall, precision, f1
+        batch_result[batch_idx, 10] = 1, points_num, recall, precision, f1
     global global_result
     global_result = np.concatenate([global_result, batch_result])
     print("threshold    points_num    recall    precision    f1")
     for i in range(11):
         print("%9.2f    %8.0f    %6.2f    %9.2f    %5.2f" % tuple(global_result[1:].mean(axis=0)[i].tolist()))
-
 
 
 def plot_rangeimage(rangeimage, theta=1, conf='p'):
@@ -128,7 +133,7 @@ def plot_rangeimage(rangeimage, theta=1, conf='p'):
         import PIL.Image as image
         rangeimage = image.fromarray(rangeimage)
         rangeimage.show()
-    elif conf =='m':
+    elif conf == 'm':
         import matplotlib.pyplot as plt
         plt.axis('off')
         plt.imshow(rangeimage, cmap='jet')

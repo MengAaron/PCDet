@@ -39,12 +39,12 @@ class RangeTemplate(Detector3DTemplate):
         loss_config = self.model_cfg.get('LOSS_CONFIG', None)
         if loss_config is not None:
             weight_dict = loss_config['LOSS_WEIGHTS']
-            seg_weight = weight_dict.get('seg_weight', 1)
+            seg_weight = weight_dict.get('seg_weight', 400)
             rpn_weight = weight_dict.get('rpn_weight', 1)
             point_weight = weight_dict.get('point_weight', 1)
             rcnn_weight = weight_dict.get('rcnn_weight', 1)
         else:
-            seg_weight = 1
+            seg_weight = 400
             point_weight = 1
             rpn_weight = 1
             rcnn_weight = 1

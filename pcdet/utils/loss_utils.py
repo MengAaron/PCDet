@@ -92,13 +92,12 @@ class SegFocalLoss(nn.Module):
         batch_size, width, height = gt.shape
         pos_inds = gt.eq(1).float()
         neg_inds = gt.lt(1).float()
-        pos_pred = pred[:, 1].float()
-        neg_pred = pred[:, 0].float()
+
 
         neg_weights = torch.pow(1 - gt, beta)
 
-        pos_loss = torch.log(pos_pred) * torch.pow(1 - pos_pred, alpha) * pos_inds
-        neg_loss = torch.log(1 - neg_pred) * torch.pow(neg_pred, alpha) * neg_weights * neg_inds
+        pos_loss = torch.log(pred) * torch.pow(1 - pred, alpha) * pos_inds
+        neg_loss = torch.log(1 - pred) * torch.pow(pred, alpha) * neg_weights * neg_inds
 
         num_pos = pos_inds.sum()
 
@@ -115,7 +114,9 @@ class SegFocalLoss(nn.Module):
         return loss
 
     def forward(self, input, target, alpha=2, beta=4):
-        return self._loss(input, target, alpha=alpha, beta=beta)
+        pos_loss = self._loss(input[:, 1], target, alpha=alpha, beta=beta)
+        neg_loss = self._loss(input[:, 0], 1 - target, alpha=alpha, beta=beta)
+        return pos_loss + neg_loss
 
 
 class WeightedSmoothL1Loss(nn.Module):

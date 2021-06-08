@@ -56,8 +56,8 @@ class PointGather(nn.Module):
             this_range_features = range_features[batch_idx].reshape((height * width, -1))
             if len(seg_mask.shape) == 3:
                 cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
-                import pudb
-                pudb.set_trace()
+                # import pudb
+                # pudb.set_trace()
             else:
                 # first feature map is foreground
                 cur_seg_mask = (seg_mask[batch_idx].argmax(dim=0).bool())

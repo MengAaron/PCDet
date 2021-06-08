@@ -35,7 +35,7 @@ DATA_CONFIG:
       USE_XYZ: True
      
 MODEL:
-    NAME: RRCNN
+    NAME: RangeTemplate
 
     BACKBONE_RANGE:
       NAME: UNet

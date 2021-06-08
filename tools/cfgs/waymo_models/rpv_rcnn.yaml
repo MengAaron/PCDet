@@ -7,7 +7,7 @@ DATA_CONFIG:
 
 
 MODEL:
-    NAME: RPVRCNN
+    NAME: RangeTemplate
 
     BACKBONE_RANGE:
         NAME: UNet2

@@ -28,7 +28,7 @@ DATA_CONFIG:
           }
 
 MODEL:
-    NAME: PointPillarRCNN
+    NAME: RangeTemplate
 
     VFE:
       NAME: MeanVFE

@@ -56,10 +56,7 @@ MODEL:
         mode: 'embedded_gaussian'
         num_classes: 2
         align_corners: False
-        loss_decode:
-            type: 'CrossEntropyLoss'
-            use_sigmoi: False
-            loss_weight: 1.0
+        loss_weight: 1.0
 
     AUX_HEAD:
         NAME: FCNHead
@@ -71,10 +68,7 @@ MODEL:
         dropout_ratio: 0.1
         num_classes: 2
         align_corners: False
-        loss_decode:
-            type: 'CrossEntropyLoss'
-            use_sigmoi: False
-            loss_weight: 0.4
+        loss_weight: 0.4
 
 
     MAP_TO_POINT_CLOUD:

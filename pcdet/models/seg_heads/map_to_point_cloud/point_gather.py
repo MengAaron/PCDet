@@ -60,11 +60,7 @@ class PointGather(nn.Module):
                 # pudb.set_trace()
             else:
                 # first feature map is foreground
-                cur_seg_mask = (seg_mask[batch_idx].argmax(dim=0).bool())
-                # cur_seg_mask |= seg_mask[batch_idx][1] >= self.foreground_threshold
-                # agt_mask_num = batch_dict['range_mask'][batch_idx].sum().sum().item()
-                # aseg_mask_num = (seg_mask[batch_idx][1] >= self.foreground_threshold).sum().sum().item()
-                # amax_mask_num = (seg_mask[batch_idx].argmax(dim=0).bool()).sum().sum().item()
+                cur_seg_mask = seg_mask[batch_idx][1] >= self.foreground_threshold
                 import pudb
                 pudb.set_trace()
 

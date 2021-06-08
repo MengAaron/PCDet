@@ -73,6 +73,51 @@ class SigmoidFocalClassificationLoss(nn.Module):
         return loss * weights
 
 
+class SegFocalLoss(nn.Module):
+
+    def __init__(self):
+        super(SegFocalLoss, self).__init__()
+
+    def _loss(self, pred, gt, alpha=2, beta=4):
+        """
+
+        Args:
+            pred:(B, 2, W, H) after sigmoid
+            gt:(B, W, H)
+
+        Returns:
+
+        """
+
+        batch_size, width, height = gt.shape
+        pos_inds = gt.eq(1).float()
+        neg_inds = gt.lt(1).float()
+        pos_pred = pred[:, 1]
+        neg_pred = pred[:, 0]
+
+        neg_weights = torch.pow(1 - gt, beta)
+
+        pos_loss = torch.log(pos_pred) * torch.pow(1 - pos_pred, alpha) * pos_inds
+        neg_loss = torch.log(1 - neg_pred) * torch.pow(neg_pred, alpha) * neg_weights * neg_inds
+
+        num_pos = pos_inds.sum()
+
+        pos_loss = pos_loss.sum()
+        neg_loss = neg_loss.sum()
+
+        loss = -(pos_loss + neg_loss) / (width * height)
+
+        # if num_pos == 0:
+        #     loss = -neg_loss
+        # else:
+        #     loss = -(pos_loss + neg_loss)/num_pos
+
+        return loss
+
+    def forward(self, input, target, alpha=2, beta=4):
+        return self._loss(input, target, alpha=alpha, beta=beta)
+
+
 class WeightedSmoothL1Loss(nn.Module):
     """
     Code-wise Weighted Smooth L1 Loss modified based on fvcore.nn.smooth_l1_loss
@@ -247,49 +292,6 @@ class CenterNetFocalLoss(nn.Module):
 
     def forward(self, input, target, mask, ind, cat, alpha=2, beta=4):
         return self._neg_loss(input, target, mask, ind, cat, alpha=alpha, beta=beta)
-
-
-class SegFocalLoss(nn.Module):
-
-    def __init__(self):
-        super(SegFocalLoss, self).__init__()
-
-    def _neg_loss(self, pred, gt, alpha=2, beta=4):
-        """
-
-        Args:
-            pred:
-            gt:tensor
-
-        Returns:
-
-        """
-
-        batch_size, width, height = gt.shape
-        pos_inds = gt.eq(1).float()
-        neg_inds = gt.lt(1).float()
-
-        neg_weights = torch.pow(1 - gt, beta)
-
-        pos_loss = torch.log(pred) * torch.pow(1 - pred, alpha) * pos_inds
-        neg_loss = torch.log(1 - pred) * torch.pow(pred, alpha) * neg_weights * neg_inds
-
-        num_pos = pos_inds.sum()
-
-        pos_loss = pos_loss.sum()
-        neg_loss = neg_loss.sum()
-
-        loss = -(pos_loss + neg_loss) / (width * height)
-
-        # if num_pos == 0:
-        #     loss = -neg_loss
-        # else:
-        #     loss = -(pos_loss + neg_loss)/num_pos
-
-        return loss
-
-    def forward(self, input, target, alpha=2, beta=4):
-        return self._neg_loss(input, target, alpha=alpha, beta=beta)
 
 
 class CenterNetFocalLossV2(nn.Module):

@@ -7,7 +7,7 @@ class FCNHeadSimple(nn.Module):
     def __init__(self, model_cfg, in_channels, **kwargs):
         super(FCNHeadSimple, self).__init__()
         self.model_cfg = model_cfg
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=1, kernel_size=1)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=2, kernel_size=1)
         self.build_loss()
         self.forward_ret_dict = {}
         self.in_channels = in_channels
@@ -18,8 +18,8 @@ class FCNHeadSimple(nn.Module):
     def forward(self, batch_dict):
         range_feature = batch_dict['range_features']
         output = self.conv1(range_feature)
-        output = torch.squeeze(output, dim=1)
-        # (B, H, W)
+        # output = torch.squeeze(output, dim=1)
+        # (B, 2, H, W)
         seg_pred = self.clip_sigmoid(output)
         batch_dict['seg_pred'] = seg_pred
         self.forward_ret_dict['seg_pred'] = seg_pred

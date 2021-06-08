@@ -338,7 +338,7 @@ class FCNHead(nn.Module):
         self.num_classes = model_cfg.num_classes
         self.conv_seg = nn.Conv2d(self.inter_channels, self.num_classes, kernel_size=1)
         # self.in_channels = in_channels
-        self.weights = model_cfg.loss_decode.loss_weight
+        self.weights = model_cfg.loss_weight
 
         self.norm_cfg = norm_cfg
         if dropout_ratio > 0:
@@ -530,7 +530,6 @@ class NLHead(FCNHead):
             use_scale=self.use_scale,
             norm_cfg=self.norm_cfg,
             mode=self.mode)
-        self.weights = 1.0
         self.inter_channels = self.model_cfg.inter_channels
         self.out_dim = self.inter_channels
         self.inter_conv = nn.Sequential(

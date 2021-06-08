@@ -558,7 +558,7 @@ class NLHead(FCNHead):
         output = self.cls_seg(output)
         seg_pred = resize(output, self.range_image_shape, mode='bilinear',
                           align_corners=self.align_corners)
-        seg_pred = torch.softmax(seg_pred, dim=2)
+        seg_pred = self.clip_sigmoid(seg_pred)
 
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:

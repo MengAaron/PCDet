@@ -92,8 +92,8 @@ class SegFocalLoss(nn.Module):
         batch_size, width, height = gt.shape
         pos_inds = gt.eq(1).float()
         neg_inds = gt.lt(1).float()
-        pos_pred = pred[:, 1]
-        neg_pred = pred[:, 0]
+        pos_pred = pred[:, 1].float()
+        neg_pred = pred[:, 0].float()
 
         neg_weights = torch.pow(1 - gt, beta)
 

@@ -48,12 +48,13 @@ MODEL:
         RANGE_IMAGE_SHAPE: [64, 512]
         in_channels: 2048
         in_index: 3
-        channels: 32
+        channels: 512
+        inter_channels: 32
         dropout_ratio: 0.1
         reduction: 2
         use_scale: True
         mode: 'embedded_gaussian'
-        num_classes: 1
+        num_classes: 2
         align_corners: False
         loss_decode:
             type: 'CrossEntropyLoss'
@@ -66,12 +67,14 @@ MODEL:
         in_channels: 1024
         in_index: 2
         channels: 256
+        inter_channels: 32
         dropout_ratio: 0.1
+        num_classes: 2
         align_corners: False
         loss_decode:
             type: 'CrossEntropyLoss'
             use_sigmoi: False
-            loss_weight: 1.0
+            loss_weight: 0.4
 
 
     MAP_TO_POINT_CLOUD:

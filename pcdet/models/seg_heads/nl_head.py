@@ -323,18 +323,21 @@ class FCNHead(nn.Module):
         assert num_convs >= 0 and dilation > 0 and isinstance(dilation, int)
         super(FCNHead, self).__init__()
         self.align_corners = align_corners
+        self.model_cfg = model_cfg
         self.in_index = model_cfg.in_index
         self._init_inputs(in_channels, self.in_index, input_transform)
         self.num_convs = num_convs
         self.concat_input = concat_input
         self.kernel_size = kernel_size
         self.channels = model_cfg.channels
-        self.range_image_shape = model_cfg.get('RANGE_IMAGE_SHAPE', [64,2650])
+        self.range_image_shape = model_cfg.get('RANGE_IMAGE_SHAPE', [64, 2650])
+        self.inter_channels = model_cfg.inter_channels
         # if isinstance(self.channels, int):
         #     self.channels = [self.channels] * num_convs
-        self.conv_seg = nn.Conv2d(32, 2, kernel_size=1)
+        self.num_classes =  model_cfg.num_classes
+        self.conv_seg = nn.Conv2d(self.inter_channels, self.num_classes, kernel_size=1)
         # self.in_channels = in_channels
-        self.weights = 0.4
+        self.weights = model_cfg.loss_decode.loss_weight
 
         self.norm_cfg = norm_cfg
         if dropout_ratio > 0:
@@ -378,7 +381,7 @@ class FCNHead(nn.Module):
                     dilation=dilation), build_norm_layer(self.norm_cfg, self.channels)[1], nn.ReLU()])
         self.forward_ret_dict = {}
         self.inter_conv = nn.Sequential(
-            *[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg, 32)[1], nn.ReLU()])
+            *[nn.Conv2d(self.channels, self.inter_channels, 1), build_norm_layer(self.norm_cfg, self.inter_channels)[1], nn.ReLU()])
         self.build_loss()
 
     def _init_inputs(self, in_channels, in_index, input_transform):
@@ -446,7 +449,7 @@ class FCNHead(nn.Module):
     def build_loss(self):
         # criterion
         self.add_module(
-            'crit', loss_utils.WeightedCrossEntropyLoss()
+            'crit', loss_utils.SegFocalLoss()
         )
 
     def get_loss(self):
@@ -455,7 +458,8 @@ class FCNHead(nn.Module):
         # import pudb
         # pudb.set_trace()
 
-        return F.cross_entropy(input, target.long()) * self.weights
+        # return F.cross_entropy(input, target.long()) * self.weights
+        return self.crit(input,target)
 
     def cls_seg(self, feat):
         """Classify each pixel."""
@@ -527,8 +531,9 @@ class NLHead(FCNHead):
             norm_cfg=self.norm_cfg,
             mode=self.mode)
         self.weights = 1.0
-        self.out_dim = 32
-        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels, 32, 1), build_norm_layer(self.norm_cfg,32)[1],nn.ReLU()])
+        self.inter_channels = self.model_cfg.inter_channels
+        self.out_dim = self.inter_channels
+        self.inter_conv = nn.Sequential(*[nn.Conv2d(self.channels, self.inter_channels, 1), build_norm_layer(self.norm_cfg,self.inter_channels)[1],nn.ReLU()])
 
     def get_output_point_feature_dim(self):
         return self.out_dim

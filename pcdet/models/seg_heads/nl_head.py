@@ -549,7 +549,6 @@ class NLHead(FCNHead):
         output = self.convs[0](x)
         output = self.nl_block(output)
         output = self.convs[1](output)
-        output = self.inter_conv(output)
 
         if self.concat_input:
             output = self.conv_cat(torch.cat([x, output], dim=1))

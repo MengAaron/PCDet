@@ -558,8 +558,9 @@ class NLHead(FCNHead):
         output = self.cls_seg(output)
         seg_pred = resize(output, self.range_image_shape, mode='bilinear',
             align_corners=self.align_corners)
-        seg_pred = self.clip_sigmoid(seg_pred)
         seg_pred = torch.squeeze(seg_pred, dim=1)
+        seg_pred = self.clip_sigmoid(seg_pred)
+
         self.forward_ret_dict['seg_pred'] = seg_pred
         if self.training:
             self.forward_ret_dict['range_mask'] = batch_dict['range_mask']

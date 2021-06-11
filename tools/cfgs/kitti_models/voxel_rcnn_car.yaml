@@ -45,7 +45,7 @@ MODEL:
     BACKBONE_2D:
         NAME: BaseBEVBackbone
 
-        LAYER_NUMS: [4, 4]
+        LAYER_NUMS: [5, 5]
         LAYER_STRIDES: [1, 2]
         NUM_FILTERS: [64, 128]
         UPSAMPLE_STRIDES: [1, 2]
@@ -108,30 +108,35 @@ MODEL:
             TEST:
                 NMS_TYPE: nms_gpu
                 MULTI_CLASSES_NMS: False
-                USE_FAST_NMS: True
+                USE_FAST_NMS: False
                 SCORE_THRESH: 0.0
                 NMS_PRE_MAXSIZE: 2048
                 NMS_POST_MAXSIZE: 100
                 NMS_THRESH: 0.7
 
         ROI_GRID_POOL:
-            FEATURES_SOURCE: ['x_conv3', 'x_conv4']
+            FEATURES_SOURCE: ['x_conv2', 'x_conv3', 'x_conv4']
             PRE_MLP: True
             GRID_SIZE: 6
             POOL_LAYERS:
+                x_conv2:
+                    MLPS: [[32, 32]]
+                    QUERY_RANGES: [[4, 4, 4]]
+                    POOL_RADIUS: [0.4]
+                    NSAMPLE: [16]
+                    POOL_METHOD: max_pool
                 x_conv3:
-                    MLPS: [[32, 32], [32, 32]]
-                    QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
-                    POOL_RADIUS: [0.4, 0.8]
-                    NSAMPLE: [16, 16]
+                    MLPS: [[32, 32]]
+                    QUERY_RANGES: [[4, 4, 4]]
+                    POOL_RADIUS: [0.8]
+                    NSAMPLE: [16]
                     POOL_METHOD: max_pool
                 x_conv4:
-                    MLPS: [[32, 32], [32, 32]]
-                    QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
-                    POOL_RADIUS: [0.8, 1.6]
-                    NSAMPLE: [16, 16]
+                    MLPS: [[32, 32]]
+                    QUERY_RANGES: [[4, 4, 4]]
+                    POOL_RADIUS: [1.6]
+                    NSAMPLE: [16]
                     POOL_METHOD: max_pool
-
         TARGET_CONFIG:
             BOX_CODER: ResidualCoder
             ROI_PER_IMAGE: 128

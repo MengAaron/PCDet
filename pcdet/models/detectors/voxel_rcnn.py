@@ -26,15 +26,7 @@ class VoxelRCNN(Detector3DTemplate):
         loss = 0
         
         loss_rpn, tb_dict = self.dense_head.get_loss()
-        loss = loss + loss_rpn
-
-        if self.point_head is not None:
-            loss_point, tb_dict = self.point_head.get_loss(tb_dict)
-            loss = loss + loss_point
-        
         loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
-        loss = loss + loss_rcnn
 
-        # loss = loss_rpn + loss_point + loss_rcnn
-        # loss = loss_rpn + loss_rcnn
+        loss = loss + loss_rpn + loss_rcnn
         return loss, tb_dict, disp_dict

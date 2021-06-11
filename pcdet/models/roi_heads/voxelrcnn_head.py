@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-from .roi_head_template import RoIHeadTemplate
-from ...utils import common_utils, spconv_utils
 from ...ops.pointnet2.pointnet2_stack import voxel_pool_modules as voxelpool_stack_modules
+from ...utils import common_utils
+from .roi_head_template import RoIHeadTemplate
 
 
 class VoxelRCNNHead(RoIHeadTemplate):
-    def __init__(self, input_channels, model_cfg, point_cloud_range, voxel_size, num_class=1, **kwargs):
+    def __init__(self, backbone_channels, model_cfg, point_cloud_range, voxel_size, num_class=1, **kwargs):
         super().__init__(num_class=num_class, model_cfg=model_cfg)
         self.model_cfg = model_cfg
         self.pool_cfg = model_cfg.ROI_GRID_POOL
@@ -19,7 +19,7 @@ class VoxelRCNNHead(RoIHeadTemplate):
         for src_name in self.pool_cfg.FEATURES_SOURCE:
             mlps = LAYER_cfg[src_name].MLPS
             for k in range(len(mlps)):
-                mlps[k] = [input_channels[src_name]] + mlps[k]
+                mlps[k] = [backbone_channels[src_name]] + mlps[k]
             pool_layer = voxelpool_stack_modules.NeighborVoxelSAModuleMSG(
                 query_ranges=LAYER_cfg[src_name].QUERY_RANGES,
                 nsamples=LAYER_cfg[src_name].NSAMPLE,
@@ -164,7 +164,7 @@ class VoxelRCNNHead(RoIHeadTemplate):
             for bs_idx in range(batch_size):
                 cur_voxel_xyz_batch_cnt[bs_idx] = (cur_coords[:, 0] == bs_idx).sum()
             # get voxel2point tensor
-            v2p_ind_tensor = spconv_utils.generate_voxel2pinds(cur_sp_tensors)
+            v2p_ind_tensor = common_utils.generate_voxel2pinds(cur_sp_tensors)
             # compute the grid coordinates in this scale, in [batch_idx, x y z] order
             cur_roi_grid_coords = roi_grid_coords // cur_stride
             cur_roi_grid_coords = torch.cat([batch_idx, cur_roi_grid_coords], dim=-1)

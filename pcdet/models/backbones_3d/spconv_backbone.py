@@ -113,14 +113,13 @@ class VoxelBackBone8x(nn.Module):
             norm_fn(128),
             nn.ReLU(),
         )
-        num_point_features = {}
-        num_point_features.update({
+        self.num_point_features = 128
+        self.backbone_channels = {
             'x_conv1': 16,
             'x_conv2': 32,
             'x_conv3': 64,
             'x_conv4': 64,
-        })
-        self.num_point_features = num_point_features
+        }
 
     def forward(self, batch_dict):
         """
@@ -319,6 +318,14 @@ class VoxelBackBone8x_4layer(nn.Module):
         #     nn.ReLU(),
         # )
         self.num_point_features = 128
+        self.backbone_channels = {
+            'x_conv1': 16,
+            'x_conv2': 32,
+            'x_conv3': 64,
+            'x_conv4': 64
+        }
+
+
 
     def forward(self, batch_dict):
         """
@@ -349,7 +356,7 @@ class VoxelBackBone8x_4layer(nn.Module):
 
         # for detection head
         # [200, 176, 5] -> [200, 176, 2]
-        out = x_conv4
+        out = self.conv_out(x_conv4)
 
         batch_dict.update({
             'encoded_spconv_tensor': out,
@@ -361,6 +368,14 @@ class VoxelBackBone8x_4layer(nn.Module):
                 'x_conv2': x_conv2,
                 'x_conv3': x_conv3,
                 'x_conv4': x_conv4,
+            }
+        })
+        batch_dict.update({
+            'multi_scale_3d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
             }
         })
 
@@ -418,6 +433,12 @@ class VoxelResBackBone8x(nn.Module):
             nn.ReLU(),
         )
         self.num_point_features = 128
+        self.backbone_channels = {
+            'x_conv1': 16,
+            'x_conv2': 32,
+            'x_conv3': 64,
+            'x_conv4': 128
+        }
 
     def forward(self, batch_dict):
         """

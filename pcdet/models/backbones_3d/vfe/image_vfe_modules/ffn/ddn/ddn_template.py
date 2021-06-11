@@ -8,6 +8,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+try:
+    from kornia.enhance.normalize import normalize
+except:
+    pass
+    # print('Warning: kornia is not installed. This package is only required by CaDDN')
 
 
 class DDNTemplate(nn.Module):
@@ -146,13 +151,12 @@ class DDNTemplate(nn.Module):
             x: (N, 3, H, W), Preprocessed images
         """
         x = images
-        import kornia
         if self.pretrained:
             # Create a mask for padded pixels
             mask = torch.isnan(x)
 
             # Match ResNet pretrained preprocessing
-            x = kornia.normalize(x, mean=self.norm_mean, std=self.norm_std)
+            x = normalize(x, mean=self.norm_mean, std=self.norm_std)
 
             # Make padded pixels = 0
             x[mask] = 0

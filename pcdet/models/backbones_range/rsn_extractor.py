@@ -109,6 +109,8 @@ class UNet(nn.Module):
         self.out_channels = self.Up1.out_channels * 2
 
     def forward(self, batch_dict):
+        # import pudb
+        # pudb.set_trace()
         x = batch_dict['range_image']
         conv1 = self.Down1(x)
         conv2 = self.Down2(conv1)
@@ -120,6 +122,43 @@ class UNet(nn.Module):
         output = self.upcat(conv1, up1)
         output = F.interpolate(output, size=[x.size(2), x.size(3)], mode='bilinear',
                                  align_corners=True)
+        batch_dict.pop('range_image', None)
+        batch_dict['range_features'] = output
+        return batch_dict
+
+    def get_output_feature_dim(self):
+        return self.out_channels
+
+
+
+class UNet2(nn.Module):
+    def __init__(self, in_channels, **kwargs):
+        super().__init__()
+
+        self.Down1 = Down(1, in_channels=in_channels, out_channels=16)
+        self.Down2 = Down(2, in_channels=16, out_channels=32)
+        self.Down3 = Down(2, in_channels=32, out_channels=64)
+        self.Down4 = Down(2, in_channels=64, out_channels=128)
+        self.Up3 = Up(2, in_channels=128, out_channels=64)
+        self.Up2 = Up(2, in_channels=128, out_channels=32)
+        self.Up1 = Up(1, in_channels=64, out_channels=16)
+        self.Up0 = Up(1, in_channels=32, out_channels=8)
+        self.upcat = UpCat()
+        self.out_channels = self.Up0.out_channels
+
+    def forward(self, batch_dict):
+        # import pudb
+        # pudb.set_trace()
+        x = batch_dict['range_image']
+        conv1 = self.Down1(x)
+        conv2 = self.Down2(conv1)
+        conv3 = self.Down3(conv2)
+        conv4 = self.Down4(conv3)
+        up3 = self.Up3(conv4)
+        up2 = self.Up2(self.upcat(conv3, up3))
+        up1 = self.Up1(self.upcat(conv2, up2))
+        output = self.upcat(conv1, up1)
+        output = self.Up0(output)
         batch_dict.pop('range_image', None)
         batch_dict['range_features'] = output
         return batch_dict

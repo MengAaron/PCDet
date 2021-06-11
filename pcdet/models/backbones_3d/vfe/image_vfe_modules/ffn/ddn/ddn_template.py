@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-import kornia
+
 
 
 class DDNTemplate(nn.Module):
@@ -146,6 +146,7 @@ class DDNTemplate(nn.Module):
             x: (N, 3, H, W), Preprocessed images
         """
         x = images
+        import kornia
         if self.pretrained:
             # Create a mask for padded pixels
             mask = torch.isnan(x)

@@ -248,7 +248,7 @@ def read_one_frame(sequence_file):
     return frame
 
 
-def convert_point_cloud_to_range_image(data_dict, training=True):
+def convert_point_cloud_to_range_image(data_dict, training=True,USE_XYZ=False):
     """
 
     Args:
@@ -290,10 +290,11 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
     range_images = np.transpose(range_images, (2, 0, 1))
     data_dict['range_image'] = range_images
     data_dict['ri_indices'] = ri_indices
-    ri_xyz = np.zeros((height, width, 3))
-    ri_xyz[ri_indices[:, 0], ri_indices[:, 1]] = points_vehicle_frame
-    ri_xyz = ri_xyz.transpose((2, 0, 1))
-    data_dict['ri_xyz'] = ri_xyz
+    if USE_XYZ:
+        ri_xyz = np.zeros((height, width, 3))
+        ri_xyz[ri_indices[:, 0], ri_indices[:, 1]] = points_vehicle_frame
+        ri_xyz = ri_xyz.transpose((2, 0, 1))
+        data_dict['ri_xyz'] = ri_xyz
 
     if training:
         gt_boxes = data_dict['gt_boxes']
@@ -323,7 +324,7 @@ def convert_point_cloud_to_range_image(data_dict, training=True):
             gt_points_vehicle_frame, num_points, inclination, range_image_size, extrinsic)
         range_mask[range_mask > 0] = 1
         data_dict['range_mask'] = range_mask
-        # data_dict['flag_of_pts'] = np.expand_dims(select, axis=1).astype(np.float)
+        data_dict['flag_of_pts'] = np.expand_dims(select, axis=1).astype(np.float)
 
     return data_dict
 
@@ -499,6 +500,7 @@ def plot_rangeimage(rangeimage, theta=1, conf='m'):
     right = int(width * (0.5 + theta / 2))
     rangeimage = rangeimage[:, left:right]
     rangeimage = rangeimage / rangeimage.max() * 255
+    # rangeimage[rangeimage == 0] = 1000
     if conf == 'p':
         import PIL.Image as image
         rangeimage = image.fromarray(rangeimage)
@@ -507,6 +509,7 @@ def plot_rangeimage(rangeimage, theta=1, conf='m'):
         import matplotlib.pyplot as plt
         plt.axis('off')
         plt.imshow(rangeimage, cmap='jet')
+        # plt.imshow(rangeimage, cmap='terrain')
         plt.show()
 
 

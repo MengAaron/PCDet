@@ -1,5 +1,5 @@
-CLASS_NAMES: ['Vehicle']
-#CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
+#CLASS_NAMES: ['Vehicle']
+CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
@@ -7,8 +7,8 @@ DATA_CONFIG:
     POINT_CLOUD_RANGE: [-75.52, -75.52, -2, 75.52, 75.52, 4]
 
     SAMPLED_INTERVAL: {
-      'train': 1,
-      'test': 1
+      'train': 5,
+      'test': 5
     }
 
 
@@ -25,18 +25,19 @@ DATA_CONFIG:
         }
     RANGE_CONFIG:
       RANGE_IMAGE_SHAPE: [64, 2650]
+      USE_XYZ: True
 
 
 
 MODEL:
-    NAME: RRCNN
+    NAME: RangeTemplate
 
     BACKBONE_RANGE:
         NAME: UNet
         NUM_INPUT_CHANNELS: 6
 
     SEG_HEAD:
-        NAME: FCNHead
+        NAME: FCNHeadSimple
 
     MAP_TO_POINT_CLOUD:
         NAME: PointGather
@@ -78,26 +79,26 @@ MODEL:
               'matched_threshold': 0.55,
               'unmatched_threshold': 0.4
             },
-#            {
-#              'class_name': 'Pedestrian',
-#              'anchor_sizes': [ [ 0.91, 0.86, 1.73 ] ],
-#              'anchor_rotations': [ 0, 1.57 ],
-#              'anchor_bottom_heights': [ 0 ],
-#              'align_center': False,
-#              'feature_map_stride': 1,
-#              'matched_threshold': 0.5,
-#              'unmatched_threshold': 0.35
-#            },
-#            {
-#              'class_name': 'Cyclist',
-#              'anchor_sizes': [ [ 1.78, 0.84, 1.78 ] ],
-#              'anchor_rotations': [ 0, 1.57 ],
-#              'anchor_bottom_heights': [ 0 ],
-#              'align_center': False,
-#              'feature_map_stride': 1,
-#              'matched_threshold': 0.5,
-#              'unmatched_threshold': 0.35
-#            }
+            {
+              'class_name': 'Pedestrian',
+              'anchor_sizes': [ [ 0.91, 0.86, 1.73 ] ],
+              'anchor_rotations': [ 0, 1.57 ],
+              'anchor_bottom_heights': [ 0 ],
+              'align_center': False,
+              'feature_map_stride': 2,
+              'matched_threshold': 0.5,
+              'unmatched_threshold': 0.35
+            },
+            {
+              'class_name': 'Cyclist',
+              'anchor_sizes': [ [ 1.78, 0.84, 1.78 ] ],
+              'anchor_rotations': [ 0, 1.57 ],
+              'anchor_bottom_heights': [ 0 ],
+              'align_center': False,
+              'feature_map_stride': 2,
+              'matched_threshold': 0.5,
+              'unmatched_threshold': 0.35
+            }
         ]
 
         TARGET_ASSIGNER_CONFIG:
@@ -118,6 +119,7 @@ MODEL:
 
     ROI_HEAD:
         NAME: RRCNNHead
+        USE_RAW_POINT: True
         CLASS_AGNOSTIC: True
 
         SHARED_FC: [ 256, 256, 256 ]
@@ -178,8 +180,8 @@ MODEL:
         SCORE_THRESH: 0.1
         OUTPUT_RAW_SCORE: False
 
-#        EVAL_METRIC: waymo
-        EVAL_METRIC: kitti
+        EVAL_METRIC: waymo
+#        EVAL_METRIC: kitti
 
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False

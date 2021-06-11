@@ -68,9 +68,13 @@ class DemoDataset(DatasetTemplate):
             data_dict = self.prepare_data(data_dict=input_dict)
 
         if self.range_config:
+            beam_inclination_range = info.get('beam_inclination_range', (
+            -0.43458698374658805, 0.03490658503988659)) if self.info_path is not None else (
+            -0.43458698374658805, 0.03490658503988659)
+            extrinsic = info.get('extrinsic', None) if self.info_path is not None else None
             data_dict.update({
-                'beam_inclination_range': info['beam_inclination_range'],
-                'extrinsic': info['extrinsic'],
+                'beam_inclination_range': beam_inclination_range,
+                'extrinsic': extrinsic,
                 'range_image_shape': self.range_config.get('RANGE_IMAGE_SHAPE', [64, 2650]),
             })
             import pcdet.datasets.waymo.waymo_utils as waymo_utils
@@ -134,6 +138,8 @@ def main():
             mask2 = pred_dicts[0]['pred_boxes'][:, 4] / pred_dicts[0]['pred_boxes'][:, 3]
             mask2 = (mask2 < 20) & (mask2 > 0.05)
             mask2 = mask2 & mask
+            # mask_score = pred_dicts[0]['pred_scores'] > 0.7
+            # mask2 = mask2 & mask_score
 
 
             # import open3d
@@ -144,10 +150,10 @@ def main():
             from visual_utils import visualize_utils as V
             V.draw_scenes(
                 points=data_dict['points'][:, 1:4],
-                gt_boxes=data_dict.get('gt_boxes', None)[0],
-                ref_boxes=pred_dicts[0]['pred_boxes'][mask2][:len(data_dict.get('gt_boxes', None)[0])],
-                ref_scores=pred_dicts[0]['pred_scores'][mask2][:len(data_dict.get('gt_boxes', None)[0])],
-                ref_labels=pred_dicts[0]['pred_labels'][mask2][:len(data_dict.get('gt_boxes', None)[0])]
+                # gt_boxes=data_dict.get('gt_boxes', None)[0],
+                ref_boxes=pred_dicts[0]['pred_boxes'][mask2],
+                ref_scores=pred_dicts[0]['pred_scores'][mask2],
+                ref_labels=pred_dicts[0]['pred_labels'][mask2]
             )
             mlab.show(stop=True)
 

@@ -9,11 +9,15 @@ from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 
 
 class RRCNNHead(RoIHeadTemplate):
-    def __init__(self, input_channels, model_cfg, num_class=1):
+    def __init__(self, input_channels, model_cfg, num_class=1, **kwargs):
         super().__init__(num_class=num_class, model_cfg=model_cfg)
         self.model_cfg = model_cfg
 
         self.SA_modules = nn.ModuleList()
+        self.USE_XYZ = model_cfg.get('USE_XYZ', False)
+        self.input_channels = input_channels
+        if not self.USE_XYZ:
+            self.input_channels -= 3
         block = self.post_act_block
 
         # c0 = self.model_cfg.ROI_AWARE_POOL.NUM_FEATURES // 2
@@ -23,7 +27,7 @@ class RRCNNHead(RoIHeadTemplate):
         #     block(64, c0, 3, padding=1, indice_key='rcnn_subm1_1'),
         # )
         self.conv_rpn = spconv.SparseSequential(
-            block(input_channels - 3, 64, 3, padding=1, indice_key='rcnn_subm2'),
+            block(self.input_channels, 64, 3, padding=1, indice_key='rcnn_subm2'),
             block(64, c0, 3, padding=1, indice_key='rcnn_subm1_2'),
         )
 
@@ -119,7 +123,10 @@ class RRCNNHead(RoIHeadTemplate):
         batch_size = batch_dict['batch_size']
         batch_idx = batch_dict['points'][:, 0]
         point_coords = batch_dict['points'][:, 1:4]
-        point_features = batch_dict['points'][:, 4:]
+        if self.USE_XYZ:
+            point_features = batch_dict['points'][:, 1:]
+        else:
+            point_features = batch_dict['points'][:, 4:]
         # part_features = torch.cat((
         #     batch_dict['point_part_offset'] if not self.model_cfg.get('DISABLE_PART', False) else point_coords,
         #     batch_dict['point_cls_scores'].view(-1, 1).detach()
@@ -130,9 +137,14 @@ class RRCNNHead(RoIHeadTemplate):
 
         # pooled_part_features_list, pooled_rpn_features_list = [], []
         pooled_rpn_features_list = []
+        # import pudb
+        # pudb.set_trace()
 
         for bs_idx in range(batch_size):
             bs_mask = (batch_idx == bs_idx)
+            #     import pudb
+            #     pudb.set_trace()
+            # bs_mask = torch.eq(batch_idx, bs_idx)
             cur_point_coords = point_coords[bs_mask]
             # cur_part_features = part_features[bs_mask]
             cur_rpn_features = point_features[bs_mask]
@@ -184,7 +196,7 @@ class RRCNNHead(RoIHeadTemplate):
         # pooled_part_features, pooled_rpn_features = self.roiaware_pool(batch_dict)
         pooled_rpn_features = self.roiaware_pool(batch_dict)
         # batch_size_rcnn = pooled_part_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
-        batch_size_rcnn =pooled_rpn_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
+        batch_size_rcnn = pooled_rpn_features.shape[0]  # (B * N, out_x, out_y, out_z, 4)
 
         # transform to sparse tensors
         sparse_shape = np.array(pooled_rpn_features.shape[1:4], dtype=np.int32)

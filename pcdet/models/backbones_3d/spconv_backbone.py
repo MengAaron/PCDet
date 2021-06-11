@@ -113,7 +113,14 @@ class VoxelBackBone8x(nn.Module):
             norm_fn(128),
             nn.ReLU(),
         )
-        self.num_point_features = 128
+        num_point_features = {}
+        num_point_features.update({
+            'x_conv1': 16,
+            'x_conv2': 32,
+            'x_conv3': 64,
+            'x_conv4': 64,
+        })
+        self.num_point_features = num_point_features
 
     def forward(self, batch_dict):
         """
@@ -156,6 +163,12 @@ class VoxelBackBone8x(nn.Module):
                 'x_conv2': x_conv2,
                 'x_conv3': x_conv3,
                 'x_conv4': x_conv4,
+            },
+            'multi_scale_3d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
             }
         })
 

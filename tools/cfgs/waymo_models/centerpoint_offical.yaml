@@ -1,9 +1,15 @@
-CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
+CLASS_NAMES: ['Vehicle','Pedestrian','Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
 
     USE_DOUBLE_FLIP_TEST: &double_flip False
+    POINT_CLOUD_RANGE: &pc_range [-75.2, -75.2, -2, 75.2, 75.2, 4]
+
+    SAMPLED_INTERVAL: {
+        'train': 5,
+        'test': 5
+    }
 
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
@@ -16,7 +22,7 @@ DATA_CONFIG:
           }
 
         - NAME: transform_points_to_voxels
-          VOXEL_SIZE: [ 0.1, 0.1, 0.15 ]
+          VOXEL_SIZE: &voxel_size [ 0.1, 0.1, 0.15 ]
           MAX_POINTS_PER_VOXEL: 5
           MAX_NUMBER_OF_VOXELS: {
               'train': 150000,
@@ -70,15 +76,25 @@ MODEL:
         LOSS_CONFIG:
           code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
           weight: 2
+          LOSS_WEIGHTS: {
+              'cls_weight': 1.0,
+              'loc_weight': 2.0,
+              'code_weights': [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]
+          }
 
         TARGET_ASSIGNER_CONFIG:
             NAME: CenterAssigner
             BOX_CODER: ResidualCoder
             tasks: *tasks_head
-            out_size_factor: 8
+            out_size_factor: &out_size_factor 8
+            VOXEL_SIZE: *voxel_size
+            OUT_SIZE_FACTOR: *out_size_factor
+            GAUSSIAN_OVERLAP: 0.1
+            MIN_RADIUS: 2
             dense_reg: 1
             gaussian_overlap: 0.1
             max_objs: 500
+            MAX_OBJS: 500
             min_radius: 2
             mapping: {
                 'Vehicle' :1,
@@ -88,11 +104,11 @@ MODEL:
 
         TEST_CONFIG:
             double_flip: *double_flip
-            post_center_limit_range: [-80, -80, -10.0, 80, 80, 10.0]
+            post_center_limit_range: *pc_range
             score_threshold: 0.1
-            pc_range: [-75.2, -75.2]
-            out_size_factor: 8
-            voxel_size: [0.1, 0.1]
+            pc_range: *pc_range
+            out_size_factor: *out_size_factor
+            voxel_size: *voxel_size
             nms:
                 use_rotate_nms: True
                 use_multi_class_nms: False
@@ -120,7 +136,7 @@ MODEL:
 
 OPTIMIZATION:
     BATCH_SIZE_PER_GPU: 4
-    NUM_EPOCHS: 30
+    NUM_EPOCHS: 60
 
     OPTIMIZER: adam_onecycle
     LR: 0.003

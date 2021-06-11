@@ -10,14 +10,14 @@ MODEL:
     NAME: RangeTemplate
 
     BACKBONE_RANGE:
-        NAME: UNet
+        NAME: UNet2
 
     SEG_HEAD:
-        NAME: FCNHead
+        NAME: FCNHeadSimple
 
     MAP_TO_POINT_CLOUD:
         NAME: PointGather
-        FOREGROUND_THRESHOLD: 0.1
+        FOREGROUND_THRESHOLD: 0.15
 
     VFE:
         NAME: MeanVFE
@@ -107,26 +107,31 @@ MODEL:
         SA_LAYER:
             raw_points:
                 MLPS: [[16, 16], [16, 16]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.4, 0.8]
                 NSAMPLE: [16, 16]
             x_conv1:
                 DOWNSAMPLE_FACTOR: 1
                 MLPS: [[16, 16], [16, 16]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.4, 0.8]
                 NSAMPLE: [16, 16]
             x_conv2:
                 DOWNSAMPLE_FACTOR: 2
                 MLPS: [[32, 32], [32, 32]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [0.8, 1.2]
                 NSAMPLE: [16, 32]
             x_conv3:
                 DOWNSAMPLE_FACTOR: 4
                 MLPS: [[64, 64], [64, 64]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [1.2, 2.4]
                 NSAMPLE: [16, 32]
             x_conv4:
                 DOWNSAMPLE_FACTOR: 8
                 MLPS: [[64, 64], [64, 64]]
+                QUERY_RANGES: [[2, 2, 2], [4, 4, 4]]
                 POOL_RADIUS: [2.4, 4.8]
                 NSAMPLE: [16, 32]
 
@@ -212,6 +217,14 @@ MODEL:
             NMS_THRESH: 0.1
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
+    LOSS_CONFIG:
+        LOSS_WEIGHTS: {
+            'seg_weight': 400.0,
+            'rpn_weight': 1.0,
+            'point_weight': 1.0,
+            'rcnn_weight': 1.0
+        }
+
 
 
 OPTIMIZATION:

@@ -7,35 +7,9 @@ DATA_CONFIG:
     POINT_CLOUD_RANGE: [-75.52, -75.52, -2, 75.52, 75.52, 4]
 
     SAMPLED_INTERVAL: {
-      'train': 1,
-      'test': 1
+      'train': 5,
+      'test': 5
     }
-
-    DATA_AUGMENTOR:
-        DISABLE_AUG_LIST: [ 'placeholder' ]
-        AUG_CONFIG_LIST:
-            - NAME: gt_sampling
-              USE_ROAD_PLANE: False
-              DB_INFO_PATH:
-                  - pcdet_waymo_dbinfos_train_sampled_10.pkl
-              PREPARE: {
-                  filter_by_min_points: [ 'Vehicle:5', 'Pedestrian:5', 'Cyclist:5' ],
-                  filter_by_difficulty: [ -1 ],
-              }
-
-              SAMPLE_GROUPS: [ 'Vehicle:15', 'Pedestrian:50', 'Cyclist:30' ]
-              NUM_POINT_FEATURES: 5
-              REMOVE_EXTRA_WIDTH: [ 0.0, 0.0, 0.0 ]
-              LIMIT_WHOLE_SCENE: True
-
-            - NAME: random_world_flip
-              ALONG_AXIS_LIST: [ 'x', 'y' ]
-
-            - NAME: random_world_rotation
-              WORLD_ROT_ANGLE: [ -0.78539816, 0.78539816 ]
-
-            - NAME: random_world_scaling
-              WORLD_SCALE_RANGE: [ 0.95, 1.05 ]
 
 
     DATA_PROCESSOR:
@@ -51,6 +25,7 @@ DATA_CONFIG:
         }
     RANGE_CONFIG:
       RANGE_IMAGE_SHAPE: [64, 2650]
+      USE_XYZ: True
 
 
 
@@ -62,7 +37,7 @@ MODEL:
         NUM_INPUT_CHANNELS: 6
 
     SEG_HEAD:
-        NAME: FCNHead
+        NAME: FCNHeadSimple
 
     MAP_TO_POINT_CLOUD:
         NAME: PointGather
@@ -104,26 +79,26 @@ MODEL:
               'matched_threshold': 0.55,
               'unmatched_threshold': 0.4
             },
-#            {
-#              'class_name': 'Pedestrian',
-#              'anchor_sizes': [ [ 0.91, 0.86, 1.73 ] ],
-#              'anchor_rotations': [ 0, 1.57 ],
-#              'anchor_bottom_heights': [ 0 ],
-#              'align_center': False,
-#              'feature_map_stride': 1,
-#              'matched_threshold': 0.5,
-#              'unmatched_threshold': 0.35
-#            },
-#            {
-#              'class_name': 'Cyclist',
-#              'anchor_sizes': [ [ 1.78, 0.84, 1.78 ] ],
-#              'anchor_rotations': [ 0, 1.57 ],
-#              'anchor_bottom_heights': [ 0 ],
-#              'align_center': False,
-#              'feature_map_stride': 1,
-#              'matched_threshold': 0.5,
-#              'unmatched_threshold': 0.35
-#            }
+            {
+              'class_name': 'Pedestrian',
+              'anchor_sizes': [ [ 0.91, 0.86, 1.73 ] ],
+              'anchor_rotations': [ 0, 1.57 ],
+              'anchor_bottom_heights': [ 0 ],
+              'align_center': False,
+              'feature_map_stride': 2,
+              'matched_threshold': 0.5,
+              'unmatched_threshold': 0.35
+            },
+            {
+              'class_name': 'Cyclist',
+              'anchor_sizes': [ [ 1.78, 0.84, 1.78 ] ],
+              'anchor_rotations': [ 0, 1.57 ],
+              'anchor_bottom_heights': [ 0 ],
+              'align_center': False,
+              'feature_map_stride': 2,
+              'matched_threshold': 0.5,
+              'unmatched_threshold': 0.35
+            }
         ]
 
         TARGET_ASSIGNER_CONFIG:
@@ -148,8 +123,8 @@ MODEL:
         SCORE_THRESH: 0.1
         OUTPUT_RAW_SCORE: False
 
-#        EVAL_METRIC: waymo
-        EVAL_METRIC: kitti
+        EVAL_METRIC: waymo
+#        EVAL_METRIC: kitti
 
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False

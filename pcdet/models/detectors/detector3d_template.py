@@ -22,7 +22,7 @@ class Detector3DTemplate(nn.Module):
         self.register_buffer('global_step', torch.LongTensor(1).zero_())
 
         self.module_topology = [
-            'backbone_range', 'seg_head', 'map_to_point_cloud', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
+            'backbone_range', 'seg_head', 'aux_head', 'map_to_point_cloud', 'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
             'backbone_2d', 'dense_head', 'point_head', 'roi_head'
         ]
 
@@ -61,7 +61,7 @@ class Detector3DTemplate(nn.Module):
             point_cloud_range=model_info_dict['point_cloud_range'],
             voxel_size=model_info_dict['voxel_size']
         )
-        model_info_dict['num_point_features'] = backbone_range_module.get_output_feature_dim()
+        model_info_dict['num_range_features'] = backbone_range_module.get_output_feature_dim()
         model_info_dict['module_list'].append(backbone_range_module)
         return backbone_range_module, model_info_dict
 
@@ -71,7 +71,19 @@ class Detector3DTemplate(nn.Module):
 
         seg_head_module = seg_heads.__all__[self.model_cfg.SEG_HEAD.NAME](
             model_cfg=self.model_cfg.SEG_HEAD,
-            in_channels=model_info_dict['num_point_features'],
+            in_channels=model_info_dict['num_range_features'],
+        )
+        model_info_dict['num_point_features'] = seg_head_module.get_output_point_feature_dim()
+        model_info_dict['module_list'].append(seg_head_module)
+        return seg_head_module, model_info_dict
+
+    def build_aux_head(self, model_info_dict):
+        if self.model_cfg.get('AUX_HEAD', None) is None:
+            return None, model_info_dict
+
+        seg_head_module = seg_heads.__all__[self.model_cfg.AUX_HEAD.NAME](
+            model_cfg=self.model_cfg.AUX_HEAD,
+            in_channels=self.model_cfg.AUX_HEAD.in_channels,
         )
         model_info_dict['module_list'].append(seg_head_module)
         return seg_head_module, model_info_dict
@@ -160,6 +172,7 @@ class Detector3DTemplate(nn.Module):
         model_info_dict['module_list'].append(pfe_module)
         model_info_dict['num_point_features'] = pfe_module.num_point_features
         model_info_dict['num_point_features_before_fusion'] = pfe_module.num_point_features_before_fusion
+        model_info_dict['num_rawpoint_features'] = pfe_module.num_point_features
         return pfe_module, model_info_dict
 
     def build_dense_head(self, model_info_dict):
@@ -202,9 +215,14 @@ class Detector3DTemplate(nn.Module):
         # pudb.set_trace()
         if self.model_cfg.get('ROI_HEAD', None) is None:
             return None, model_info_dict
+        input_channels = model_info_dict['num_rawpoint_features'] if self.model_cfg.ROI_HEAD.get('USE_RAW_POINT',
+                                                                                                 False) else \
+                         model_info_dict['num_point_features']
         point_head_module = roi_heads.__all__[self.model_cfg.ROI_HEAD.NAME](
             model_cfg=self.model_cfg.ROI_HEAD,
-            input_channels=model_info_dict['num_point_features'],
+            input_channels=input_channels,
+            point_cloud_range=model_info_dict['point_cloud_range'],
+            voxel_size=model_info_dict['voxel_size'],
             num_class=self.num_class if not self.model_cfg.ROI_HEAD.CLASS_AGNOSTIC else 1,
         )
 

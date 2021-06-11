@@ -1,5 +1,6 @@
-from .voxel_set_abstraction import VoxelSetAbstraction
+from .voxel_set_abstraction import VoxelSetAbstraction,NeighborVoxelSetAbstraction
 
 __all__ = {
-    'VoxelSetAbstraction': VoxelSetAbstraction
+    'VoxelSetAbstraction': VoxelSetAbstraction,
+    'NeighborVoxelSetAbstraction': NeighborVoxelSetAbstraction
 }

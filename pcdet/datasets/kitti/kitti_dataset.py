@@ -32,6 +32,7 @@ class KittiDataset(DatasetTemplate):
         self.kitti_infos = []
         self.include_kitti_data(self.mode)
         self.range_config = dataset_cfg.get('RANGE_CONFIG', False)
+        self.USE_XYZ = self.range_config.get('USE_XYZ', False) if self.range_config else False
 
     def include_kitti_data(self, mode):
         if self.logger is not None:
@@ -438,14 +439,17 @@ class KittiDataset(DatasetTemplate):
             # waymo_utils.test(data_dict)
             # import pudb
             # pudb.set_trace()
-            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training)
+            data_dict = waymo_utils.convert_point_cloud_to_range_image(data_dict, self.training, self.USE_XYZ)
+            if self.USE_XYZ:
+                data_dict['range_image'] = np.concatenate((data_dict['range_image'], data_dict['ri_xyz']), axis=0)
+                data_dict.pop('ri_xyz', None)
             points_feature_num = data_dict['points'].shape[1]
             data_dict['points'] = np.concatenate((data_dict['points'], data_dict['ri_indices']), axis=1)
             data_dict = self.prepare_data(data_dict=data_dict, augment=False)
             data_dict['points'] = data_dict['points'][:, :points_feature_num]
             data_dict.pop('beam_inclination_range', None)
             data_dict.pop('extrinsic', None)
-            data_dict.pop('range_image_shape', None)
+
 
 
         data_dict['image_shape'] = img_shape

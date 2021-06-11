@@ -161,6 +161,7 @@ def draw_boxes(ax, boxes, pc_range, color='green'):
 
 def main():
     args, cfg = parse_config()
+    TAG = str(Path(args.cfg_file).stem)
     logger = common_utils.create_logger()
     logger.info('-----------------Quick Demo of OpenPCDet-------------------------')
     demo_dataset = DemoDataset(
@@ -175,6 +176,8 @@ def main():
     model.eval()
     pc_range = cfg.DATA_CONFIG.POINT_CLOUD_RANGE
     res = 0.1
+    import pudb
+    pudb.set_trace()
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
             logger.info(f'Visualized sample index: \t{idx + 1}')
@@ -188,6 +191,8 @@ def main():
             mask2 = pred_dicts[0]['pred_boxes'][:, 4] / pred_dicts[0]['pred_boxes'][:, 3]
             mask2 = (mask2 < 20) & (mask2 > 0.05)
             mask2 = mask2 & mask
+            # mask_score = pred_dicts[0]['pred_scores'] > 0.7
+            # mask2 = mask2 & mask_score
 
             points = data_dict['points'][:, 1:4].cpu().numpy()
             # import pudb
@@ -233,10 +238,10 @@ def main():
             draw_boxes(ax, data_dict.get('gt_boxes', None)[0].cpu().numpy(), pc_range, color='blue')
             # import pudb
             # pudb.set_trace()
-            draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2][:100].cpu().numpy(), pc_range, color='red')
+            draw_boxes(ax, pred_dicts[0]['pred_boxes'][mask2].cpu().numpy(), pc_range, color='red')
             plt.axis('off')
             plt.tight_layout()
-            plt.savefig('result/bev-%d-rrcnn.png' % idx)
+            plt.savefig('result/bev-%d-%s.png' % (idx, TAG))
             plt.clf()
             # rgba_colors = np.zeros((points.shape[0], 4))
             # rgba_colors[:, 2] = 1

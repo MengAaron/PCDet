@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze
+import torch.nn.functional as F
+from .plot_utils import plot_pc, plot_pc_with_gt, map_plot_with_gt, plot_pc_with_gt_threshold, analyze,plot_rangeimage
 
 
 class PointGather(nn.Module):
@@ -35,7 +36,10 @@ class PointGather(nn.Module):
     def foreground_points_voxels_filter_and_feature_gather(self, batch_dict):
         range_features = batch_dict['range_features'].permute((0, 2, 3, 1))
         seg_mask = batch_dict['seg_pred']
-        batch_size, height, width = batch_dict['seg_pred'].shape
+        if len(seg_mask.shape) == 3:
+            batch_size, height, width = batch_dict['seg_pred'].shape
+        else:
+            batch_size, _, height, width = batch_dict['seg_pred'].shape
         points = batch_dict['points']
         ri_indices = batch_dict['ri_indices']
         voxels = batch_dict['voxels']
@@ -44,13 +48,23 @@ class PointGather(nn.Module):
         foreground_voxels = []
         foreground_voxel_coords = []
         foreground_voxel_num_points = []
+
         # import pudb
         # pudb.set_trace()
         # analyze(batch_dict)
 
         for batch_idx in range(batch_size):
+
             this_range_features = range_features[batch_idx].reshape((height * width, -1))
-            cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
+            if len(seg_mask.shape) == 3:
+                cur_seg_mask = seg_mask[batch_idx] >= self.foreground_threshold
+                # import pudb
+                # pudb.set_trace()
+            else:
+                # first feature map is foreground
+                cur_seg_mask = seg_mask[batch_idx][1] >= self.foreground_threshold
+
+
             cur_seg_mask = torch.flatten(cur_seg_mask)
 
             # points
@@ -103,8 +117,12 @@ class PointGather(nn.Module):
         foreground_voxel_num_points = torch.cat(foreground_voxel_num_points, dim=0)
         batch_dict['voxels'] = foreground_voxels
         batch_dict['voxel_coords'] = foreground_voxel_coords
+        # print(foreground_voxel_coords[:, 0].max().int().item() + 1)
+        # print()
         batch_dict['voxel_num_points'] = foreground_voxel_num_points
         batch_dict.pop('range_features', None)
         batch_dict.pop('seg_pred', None)
+        batch_dict.pop('ri_indices', None)
+        batch_dict.pop('range_mask', None)
 
         return batch_dict
